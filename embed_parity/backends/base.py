@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Protocol, Sequence
+from collections.abc import Sequence
+from typing import Any, Protocol
 
 import numpy as np
 
@@ -14,4 +15,3 @@ class EmbeddingBackend(Protocol):
     def metadata(self) -> dict[str, Any]: ...
 
     def encode(self, texts: Sequence[str], batch_size: int) -> np.ndarray: ...
-

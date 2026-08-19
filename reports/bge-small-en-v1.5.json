@@ -5,15 +5,15 @@
         {
           "batch_a": 1,
           "batch_b": 8,
-          "mean_cosine": 0.9999997304575446,
+          "mean_cosine": 0.999999667091977,
           "minimum_cosine": 0.9999983120751018,
           "passed": true
         },
         {
           "batch_a": 1,
           "batch_b": 32,
-          "mean_cosine": 0.999999632108325,
-          "minimum_cosine": 0.9999983120751018,
+          "mean_cosine": 0.9999995996489793,
+          "minimum_cosine": 0.9999982591037389,
           "passed": true
         }
       ],
@@ -43,6 +43,8 @@
     "dtype": "float16",
     "model_id": "BAAI/bge-small-en-v1.5",
     "pooling": "cls",
+    "request_truncation": true,
+    "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
     "runtime": "TEI",
     "server_metadata": {
       "auto_truncate": true,
@@ -54,7 +56,7 @@
       "max_input_length": 512,
       "model_dtype": "float16",
       "model_id": "BAAI/bge-small-en-v1.5",
-      "model_sha": null,
+      "model_sha": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
       "model_type": {
         "embedding": {
           "pooling": "cls"
@@ -150,7 +152,7 @@
     "candidate_dtype": "float16",
     "candidate_model_id": "BAAI/bge-small-en-v1.5",
     "candidate_pooling": "cls",
-    "candidate_revision": null,
+    "candidate_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
     "dtype_match": false,
     "model_id_match": true,
     "passed": true,
@@ -159,7 +161,7 @@
     "reference_model_id": "BAAI/bge-small-en-v1.5",
     "reference_pooling": "cls",
     "reference_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
-    "revision_match": null
+    "revision_match": true
   },
   "model": "BAAI/bge-small-en-v1.5",
   "neighbors": {
@@ -221,14 +223,18 @@
   },
   "passed": true,
   "prefix_analysis": {
-    "cross_variant_improvement": -0.050453469471727797,
+    "document": null,
     "possible_mismatch": false,
-    "prefix": "Represent this sentence for searching relevant passages: ",
-    "scores": {
-      "prefixed_to_prefixed": 0.9999959187485336,
-      "raw_to_raw": 0.9999982271151806,
-      "reference_prefixed_to_candidate_raw": 0.9494170863186181,
-      "reference_raw_to_candidate_prefixed": 0.9495447576434528
+    "query": {
+      "cross_variant_improvement": -0.050453469471727797,
+      "possible_mismatch": false,
+      "prefix": "Represent this sentence for searching relevant passages: ",
+      "scores": {
+        "prefixed_to_prefixed": 0.9999959187485336,
+        "raw_to_raw": 0.9999982271151806,
+        "reference_prefixed_to_candidate_raw": 0.9494170863186181,
+        "reference_raw_to_candidate_prefixed": 0.9495447576434528
+      }
     }
   },
   "probe_count": 97,
@@ -249,7 +255,8 @@
     "transformers_version": "5.15.0"
   },
   "requested_probe_count": 100,
-  "schema_version": 1,
+  "schema_version": 2,
+  "tool_version": "0.2.0",
   "skipped_probes": [
     {
       "category": "empty",

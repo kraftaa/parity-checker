@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass
-from typing import Any, Callable, Sequence
+from typing import Any
 
 import numpy as np
 
+from . import __version__
 from .backends.base import EmbeddingBackend
-from .probes import Probe, recommended_query_prefix
+from .probes import Probe, recommended_document_prefix, recommended_query_prefix
 
 
 @dataclass(frozen=True)
@@ -42,6 +44,9 @@ class Thresholds:
                 raise ValueError(f"{name} must be between {lower} and {upper}")
 
 
+DEFAULT_THRESHOLDS = Thresholds()
+
+
 def _cosine_rows(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     numerator = np.sum(a * b, axis=1)
     denominator = np.linalg.norm(a, axis=1) * np.linalg.norm(b, axis=1)
@@ -68,7 +73,7 @@ def _rankdata(values: np.ndarray) -> np.ndarray:
     """Average ranks for ties, equivalent to scipy.stats.rankdata(method='average')."""
     order = np.argsort(values, kind="mergesort")
     sorted_values = values[order]
-    ranks = np.empty(len(values), dtype=np.float64)
+    ranks: np.ndarray = np.empty(len(values), dtype=np.float64)
     start = 0
     while start < len(values):
         end = start + 1
@@ -130,20 +135,30 @@ def _metadata_compatibility(
 ) -> dict[str, Any]:
     ref_model = reference.get("model_id") or expected_model
     can_model = candidate.get("model_id")
-    model_match = None if can_model is None else str(ref_model).casefold() == str(can_model).casefold()
+    model_match = (
+        None if can_model is None else str(ref_model).casefold() == str(can_model).casefold()
+    )
     ref_revision = reference.get("resolved_revision")
     can_revision = candidate.get("resolved_revision")
     revision_match: bool | None = None
     if ref_revision and can_revision:
         left, right = str(ref_revision).casefold(), str(can_revision).casefold()
         # Git commit hashes are commonly exposed in short and full forms.
-        revision_match = left == right or (min(len(left), len(right)) >= 7 and (left.startswith(right) or right.startswith(left)))
+        revision_match = left == right or (
+            min(len(left), len(right)) >= 7 and (left.startswith(right) or right.startswith(left))
+        )
     ref_dtype = reference.get("dtype")
     can_dtype = candidate.get("dtype")
-    dtype_match = None if ref_dtype is None or can_dtype is None else str(ref_dtype).casefold() == str(can_dtype).casefold()
+    dtype_match = (
+        None
+        if ref_dtype is None or can_dtype is None
+        else str(ref_dtype).casefold() == str(can_dtype).casefold()
+    )
     ref_pooling = reference.get("pooling")
     can_pooling = candidate.get("pooling")
-    pooling_match = None if ref_pooling is None or can_pooling is None else ref_pooling == can_pooling
+    pooling_match = (
+        None if ref_pooling is None or can_pooling is None else ref_pooling == can_pooling
+    )
     return {
         "reference_model_id": ref_model,
         "candidate_model_id": can_model,
@@ -157,7 +172,9 @@ def _metadata_compatibility(
         "reference_pooling": ref_pooling,
         "candidate_pooling": can_pooling,
         "pooling_match": pooling_match,
-        "passed": model_match is not False and revision_match is not False and pooling_match is not False,
+        "passed": model_match is not False
+        and revision_match is not False
+        and pooling_match is not False,
     }
 
 
@@ -170,7 +187,9 @@ def _probe_fingerprint(probes: Sequence[Probe]) -> str:
     return "sha256:" + hashlib.sha256(canonical).hexdigest()
 
 
-def _nearest_neighbors(ref: np.ndarray, candidate: np.ndarray, probes: Sequence[Probe]) -> dict[str, Any]:
+def _nearest_neighbors(
+    ref: np.ndarray, candidate: np.ndarray, probes: Sequence[Probe]
+) -> dict[str, Any]:
     ref_sim = _cosine_matrix(ref)
     can_sim = _cosine_matrix(candidate)
     np.fill_diagonal(ref_sim, -np.inf)
@@ -184,10 +203,12 @@ def _nearest_neighbors(ref: np.ndarray, candidate: np.ndarray, probes: Sequence[
         if actual_k == 0:
             overlap = np.ones(len(probes))
         else:
-            overlap = np.array([
-                len(set(ref_order[i, :actual_k]) & set(can_order[i, :actual_k])) / actual_k
-                for i in range(len(probes))
-            ])
+            overlap = np.array(
+                [
+                    len(set(ref_order[i, :actual_k]) & set(can_order[i, :actual_k])) / actual_k
+                    for i in range(len(probes))
+                ]
+            )
         metrics[f"top_{k}_overlap"] = float(np.mean(overlap))
         if k == 10:
             row_overlap_10 = overlap.tolist()
@@ -201,7 +222,9 @@ def _nearest_neighbors(ref: np.ndarray, candidate: np.ndarray, probes: Sequence[
     }
 
 
-def _core_metrics(ref: np.ndarray, candidate: np.ndarray, probes: Sequence[Probe]) -> dict[str, Any]:
+def _core_metrics(
+    ref: np.ndarray, candidate: np.ndarray, probes: Sequence[Probe]
+) -> dict[str, Any]:
     cosines = _cosine_rows(ref, candidate)
     worst = np.argsort(np.nan_to_num(cosines, nan=-np.inf))[:10]
     ref_matrix = _cosine_matrix(ref)
@@ -222,7 +245,12 @@ def _core_metrics(ref: np.ndarray, candidate: np.ndarray, probes: Sequence[Probe
         "vector": {
             **_safe_stats(cosines),
             "worst": [
-                {"id": probes[i].id, "category": probes[i].category, "text": probes[i].text, "cosine": float(cosines[i])}
+                {
+                    "id": probes[i].id,
+                    "category": probes[i].category,
+                    "text": probes[i].text,
+                    "cosine": float(cosines[i]),
+                }
                 for i in worst
             ],
         },
@@ -250,11 +278,55 @@ def _batch_consistency(
         mean = _safe_stats(cosines)["mean"]
         item_passed = bool(compatible and np.isfinite(mean) and mean >= threshold)
         passed &= item_passed
-        comparisons.append({
-            "batch_a": base_batch, "batch_b": batch, "mean_cosine": mean,
-            "minimum_cosine": _safe_stats(cosines)["minimum"], "passed": item_passed,
-        })
+        comparisons.append(
+            {
+                "batch_a": base_batch,
+                "batch_b": batch,
+                "mean_cosine": mean,
+                "minimum_cosine": _safe_stats(cosines)["minimum"],
+                "passed": item_passed,
+            }
+        )
     return {"passed": passed, "comparisons": comparisons}
+
+
+def _prefix_variant_analysis(
+    prefix: str | None,
+    category: str,
+    reference: EmbeddingBackend,
+    candidate: EmbeddingBackend,
+    probes: Sequence[Probe],
+    batch_size: int,
+    improvement_threshold: float,
+) -> dict[str, Any] | None:
+    category_probes = [p for p in probes if p.category == category]
+    if not prefix or not category_probes:
+        return None
+    raw = [p.text for p in category_probes]
+    prefixed = [prefix + p.text for p in category_probes]
+    ref_raw = reference.encode(raw, batch_size)
+    ref_prefixed = reference.encode(prefixed, batch_size)
+    can_raw = candidate.encode(raw, batch_size)
+    can_prefixed = candidate.encode(prefixed, batch_size)
+    scores = {
+        "raw_to_raw": float(np.nanmean(_cosine_rows(ref_raw, can_raw))),
+        "reference_prefixed_to_candidate_raw": float(
+            np.nanmean(_cosine_rows(ref_prefixed, can_raw))
+        ),
+        "reference_raw_to_candidate_prefixed": float(
+            np.nanmean(_cosine_rows(ref_raw, can_prefixed))
+        ),
+        "prefixed_to_prefixed": float(np.nanmean(_cosine_rows(ref_prefixed, can_prefixed))),
+    }
+    best_cross = max(
+        scores["reference_prefixed_to_candidate_raw"], scores["reference_raw_to_candidate_prefixed"]
+    )
+    return {
+        "prefix": prefix,
+        "scores": scores,
+        "cross_variant_improvement": best_cross - scores["raw_to_raw"],
+        "possible_mismatch": best_cross - scores["raw_to_raw"] >= improvement_threshold,
+    }
 
 
 def _prefix_analysis(
@@ -265,28 +337,32 @@ def _prefix_analysis(
     batch_size: int,
     improvement_threshold: float,
 ) -> dict[str, Any] | None:
-    prefix = recommended_query_prefix(model_id)
-    query_probes = [p for p in probes if p.category == "query"]
-    if not prefix or not query_probes:
+    query = _prefix_variant_analysis(
+        recommended_query_prefix(model_id),
+        "query",
+        reference,
+        candidate,
+        probes,
+        batch_size,
+        improvement_threshold,
+    )
+    document = _prefix_variant_analysis(
+        recommended_document_prefix(model_id),
+        "document",
+        reference,
+        candidate,
+        probes,
+        batch_size,
+        improvement_threshold,
+    )
+    if query is None and document is None:
         return None
-    raw = [p.text for p in query_probes]
-    prefixed = [prefix + p.text for p in query_probes]
-    ref_raw = reference.encode(raw, batch_size)
-    ref_prefixed = reference.encode(prefixed, batch_size)
-    can_raw = candidate.encode(raw, batch_size)
-    can_prefixed = candidate.encode(prefixed, batch_size)
-    scores = {
-        "raw_to_raw": float(np.nanmean(_cosine_rows(ref_raw, can_raw))),
-        "reference_prefixed_to_candidate_raw": float(np.nanmean(_cosine_rows(ref_prefixed, can_raw))),
-        "reference_raw_to_candidate_prefixed": float(np.nanmean(_cosine_rows(ref_raw, can_prefixed))),
-        "prefixed_to_prefixed": float(np.nanmean(_cosine_rows(ref_prefixed, can_prefixed))),
-    }
-    best_cross = max(scores["reference_prefixed_to_candidate_raw"], scores["reference_raw_to_candidate_prefixed"])
     return {
-        "prefix": prefix,
-        "scores": scores,
-        "cross_variant_improvement": best_cross - scores["raw_to_raw"],
-        "possible_mismatch": best_cross - scores["raw_to_raw"] >= improvement_threshold,
+        "query": query,
+        "document": document,
+        "possible_mismatch": any(
+            analysis is not None and analysis["possible_mismatch"] for analysis in (query, document)
+        ),
     }
 
 
@@ -297,16 +373,17 @@ def compare_backends(
     probes: Sequence[Probe],
     *,
     batch_sizes: Sequence[int] = (1, 8, 32),
-    thresholds: Thresholds = Thresholds(),
+    thresholds: Thresholds = DEFAULT_THRESHOLDS,
     length_factory: Callable[[int], str] | None = None,
     lengths: Sequence[int] = (32, 64, 128, 256, 384, 512, 768, 1024),
 ) -> dict[str, Any]:
     requested_probes = list(probes)
     empty_supported = all(
-        getattr(backend, "supports_empty_inputs", True)
-        for backend in (reference, candidate)
+        getattr(backend, "supports_empty_inputs", True) for backend in (reference, candidate)
     )
-    skipped_probes = [probe for probe in requested_probes if not empty_supported and not probe.text.strip()]
+    skipped_probes = [
+        probe for probe in requested_probes if not empty_supported and not probe.text.strip()
+    ]
     probes = [probe for probe in requested_probes if probe not in skipped_probes]
     if not batch_sizes or any(size < 1 for size in batch_sizes):
         raise ValueError("batch sizes must contain positive integers")
@@ -314,7 +391,11 @@ def compare_backends(
         raise ValueError("batch sizes must be unique")
     if len(probes) < 2:
         raise ValueError("at least two probes are required")
-    if length_factory and (not lengths or tuple(sorted(set(lengths))) != tuple(lengths) or any(length < 1 for length in lengths)):
+    if length_factory and (
+        not lengths
+        or tuple(sorted(set(lengths))) != tuple(lengths)
+        or any(length < 1 for length in lengths)
+    ):
         raise ValueError("lengths must be positive, unique, and increasing")
     texts = [probe.text for probe in probes]
     base_batch = batch_sizes[0]
@@ -345,13 +426,19 @@ def compare_backends(
         "norm_relative_difference": norm_relative,
         "norm_distribution_relative_difference": norm_distribution_relative,
         "norm_max_relative_difference": norm_max_relative,
-        "norm_compatible": bool(np.isfinite(norm_max_relative) and norm_max_relative <= thresholds.norm_relative_difference),
+        "norm_compatible": bool(
+            np.isfinite(norm_max_relative)
+            and norm_max_relative <= thresholds.norm_relative_difference
+        ),
     }
     reference_metadata = reference.metadata
     candidate_metadata = candidate.metadata
-    metadata_compatibility = _metadata_compatibility(model_id, reference_metadata, candidate_metadata)
+    metadata_compatibility = _metadata_compatibility(
+        model_id, reference_metadata, candidate_metadata
+    )
     report: dict[str, Any] = {
-        "schema_version": 1,
+        "schema_version": 2,
+        "tool_version": __version__,
         "model": model_id,
         "thresholds": asdict(thresholds),
         "reference": reference_metadata,
@@ -360,7 +447,11 @@ def compare_backends(
         "requested_probe_count": len(requested_probes),
         "probe_count": len(probes),
         "skipped_probes": [
-            {"id": probe.id, "category": probe.category, "reason": "empty input unsupported by a runtime"}
+            {
+                "id": probe.id,
+                "category": probe.category,
+                "reason": "empty input unsupported by a runtime",
+            }
             for probe in skipped_probes
         ],
         "probe_fingerprint": _probe_fingerprint(probes),
@@ -383,8 +474,12 @@ def compare_backends(
     if structurally_usable:
         report.update(_core_metrics(ref, candidate_vectors, probes))
         report["batch_consistency"] = {
-            "reference": _batch_consistency(reference, texts, ref, base_batch, batch_sizes, thresholds.batch_min),
-            "candidate": _batch_consistency(candidate, texts, candidate_vectors, base_batch, batch_sizes, thresholds.batch_min),
+            "reference": _batch_consistency(
+                reference, texts, ref, base_batch, batch_sizes, thresholds.batch_min
+            ),
+            "candidate": _batch_consistency(
+                candidate, texts, candidate_vectors, base_batch, batch_sizes, thresholds.batch_min
+            ),
         }
         report["prefix_analysis"] = _prefix_analysis(
             model_id, reference, candidate, probes, base_batch, thresholds.prefix_improvement
@@ -428,27 +523,61 @@ def analyze_lengths(
         text = factory(length)
         ref = reference.encode([text], batch_size)
         can = candidate.encode([text], batch_size)
-        compatible = ref.shape == can.shape and ref.ndim == 2 and np.isfinite(ref).all() and np.isfinite(can).all()
+        compatible = (
+            ref.shape == can.shape
+            and ref.ndim == 2
+            and np.isfinite(ref).all()
+            and np.isfinite(can).all()
+        )
         cosine = float(_cosine_rows(ref, can)[0]) if compatible else float("nan")
-        rows.append({"tokens": length, "cosine": cosine, "passed": bool(np.isfinite(cosine) and cosine >= threshold)})
+        rows.append(
+            {
+                "tokens": length,
+                "cosine": cosine,
+                "passed": bool(np.isfinite(cosine) and cosine >= threshold),
+            }
+        )
     failing = [row for row in rows if not row["passed"]]
-    result: dict[str, Any] = {"threshold": threshold, "points": rows, "passed": not failing, "minimal_reproducer": None}
-    passing_before_failure = any(row["passed"] and row["tokens"] < failing[0]["tokens"] for row in rows) if failing else False
+    result: dict[str, Any] = {
+        "threshold": threshold,
+        "points": rows,
+        "passed": not failing,
+        "minimal_reproducer": None,
+    }
+    passing_before_failure = (
+        any(row["passed"] and row["tokens"] < failing[0]["tokens"] for row in rows)
+        if failing
+        else False
+    )
     if failing and passing_before_failure:
-        high = failing[0]["tokens"]
-        low = max(row["tokens"] for row in rows if row["passed"] and row["tokens"] < high)
+        high = int(failing[0]["tokens"])
+        low = int(max(row["tokens"] for row in rows if row["passed"] and row["tokens"] < high))
         original = high
         while low + 1 < high:
             middle = (low + high) // 2
             text = factory(middle)
-            cosine = float(_cosine_rows(reference.encode([text], batch_size), candidate.encode([text], batch_size))[0])
+            cosine = float(
+                _cosine_rows(
+                    reference.encode([text], batch_size), candidate.encode([text], batch_size)
+                )[0]
+            )
             if np.isfinite(cosine) and cosine >= threshold:
                 low = middle
             else:
                 high = middle
         below_text, failing_text = factory(high - 1), factory(high)
-        below_cos = float(_cosine_rows(reference.encode([below_text], batch_size), candidate.encode([below_text], batch_size))[0])
-        fail_cos = float(_cosine_rows(reference.encode([failing_text], batch_size), candidate.encode([failing_text], batch_size))[0])
+        below_cos = float(
+            _cosine_rows(
+                reference.encode([below_text], batch_size),
+                candidate.encode([below_text], batch_size),
+            )[0]
+        )
+        fail_cos = float(
+            _cosine_rows(
+                reference.encode([failing_text], batch_size),
+                candidate.encode([failing_text], batch_size),
+            )[0]
+        )
         result["minimal_reproducer"] = {
             "original_failing_tokens": original,
             "tokens": high,

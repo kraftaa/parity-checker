@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Sequence
+import time
+from collections.abc import Sequence
+from typing import Any
 
 import httpx
 import numpy as np
@@ -16,11 +18,22 @@ class TEIBackend:
         url: str,
         *,
         timeout: float = 120.0,
+        api_key: str | None = None,
+        headers: dict[str, str] | None = None,
+        truncate: bool = True,
+        retries: int = 2,
+        retry_backoff: float = 0.25,
         client: httpx.Client | None = None,
     ) -> None:
         self.url = url.rstrip("/")
-        self.client = client or httpx.Client(timeout=timeout)
+        request_headers = dict(headers or {})
+        if api_key:
+            request_headers.setdefault("Authorization", f"Bearer {api_key}")
+        self.client = client or httpx.Client(timeout=timeout, headers=request_headers)
         self._owns_client = client is None
+        self.truncate = truncate
+        self.retries = retries
+        self.retry_backoff = retry_backoff
         self._metadata = self._fetch_metadata()
 
     def _fetch_metadata(self) -> dict[str, Any]:
@@ -29,7 +42,9 @@ class TEIBackend:
         for path in ("/info", "/"):
             try:
                 response = self.client.get(self.url + path)
-                if response.is_success and "application/json" in response.headers.get("content-type", ""):
+                if response.is_success and "application/json" in response.headers.get(
+                    "content-type", ""
+                ):
                     payload = response.json()
                     if isinstance(payload, dict):
                         data["server_metadata"] = payload
@@ -68,7 +83,45 @@ class TEIBackend:
 
     @property
     def metadata(self) -> dict[str, Any]:
-        return dict(self._metadata)
+        return {**self._metadata, "request_truncation": self.truncate}
+
+    def wait_until_ready(self, timeout: float) -> None:
+        """Wait for TEI's health endpoint and fail with a useful timeout message."""
+        deadline = time.monotonic() + timeout
+        last_error: str | None = None
+        while time.monotonic() < deadline:
+            try:
+                response = self.client.get(self.url + "/health")
+                if response.is_success:
+                    self._metadata = self._fetch_metadata()
+                    return
+                last_error = f"HTTP {response.status_code}: {response.text[:200]}"
+            except httpx.RequestError as exc:
+                last_error = str(exc)
+            time.sleep(min(0.25, max(0.0, deadline - time.monotonic())))
+        raise RuntimeError(
+            f"TEI did not become ready within {timeout:g}s ({last_error or 'no response'})"
+        )
+
+    def _embed_request(self, chunk: list[str]) -> httpx.Response:
+        retryable_statuses = {408, 425, 429, 500, 502, 503, 504}
+        last_error: Exception | None = None
+        for attempt in range(self.retries + 1):
+            try:
+                response = self.client.post(
+                    self.url + "/embed",
+                    json={"inputs": chunk, "truncate": self.truncate},
+                )
+                if response.status_code not in retryable_statuses or attempt == self.retries:
+                    return response
+            except httpx.RequestError as exc:
+                last_error = exc
+                if attempt == self.retries:
+                    break
+            time.sleep(self.retry_backoff * (2**attempt))
+        raise RuntimeError(
+            f"TEI /embed request failed after {self.retries + 1} attempts: {last_error}"
+        ) from last_error
 
     def encode(self, texts: Sequence[str], batch_size: int) -> np.ndarray:
         if batch_size < 1:
@@ -76,10 +129,7 @@ class TEIBackend:
         rows: list[list[float]] = []
         for start in range(0, len(texts), batch_size):
             chunk = list(texts[start : start + batch_size])
-            response = self.client.post(
-                self.url + "/embed",
-                json={"inputs": chunk, "truncate": True},
-            )
+            response = self._embed_request(chunk)
             if not response.is_success:
                 previews = [repr(text[:80]) for text in chunk[:3]]
                 raise RuntimeError(
@@ -107,7 +157,7 @@ class TEIBackend:
         if self._owns_client:
             self.client.close()
 
-    def __enter__(self) -> "TEIBackend":
+    def __enter__(self) -> TEIBackend:
         return self
 
     def __exit__(self, *_: object) -> None:

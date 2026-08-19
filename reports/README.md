@@ -9,6 +9,15 @@ These experiments were run on August 19, 2026 using:
   skipped because TEI rejects empty inputs
 - batch sizes 1, 8, and 32
 - controlled input lengths 32, 64, 128, 256, 384, 512, 768, and 1024 tokens
+- identical pinned Hugging Face commit SHAs for the reference and TEI runtimes
+
+Pinned revisions:
+
+| Model | Commit SHA |
+|---|---|
+| `BAAI/bge-small-en-v1.5` | `5c38ec7c405ec4b44b94cc5a9bb96e735b38267a` |
+| `intfloat/e5-small-v2` | `ffb93f3bd4047442299a41ebb6fa998a38507c52` |
+| `sentence-transformers/all-MiniLM-L6-v2` | `1110a243fdf4706b3f48f1d95db1a4f5529b4d41` |
 
 No discrepancy was manufactured in the baseline runs. All three passed the
 configured vector, geometry, nearest-neighbor, batch, norm, pooling, and length
@@ -42,6 +51,6 @@ Machine-readable reports:
 - [`all-MiniLM-L6-v2.json`](all-MiniLM-L6-v2.json)
 - [`all-MiniLM-L6-v2-pooling-cls.json`](all-MiniLM-L6-v2-pooling-cls.json)
 
-TEI did not expose its resolved model commit SHA through `/info`, so revision
-compatibility is recorded as unknown rather than assumed. The reference commit
-SHAs and complete server metadata remain available in each JSON report.
+TEI exposed the pinned model commit through `/info`; all four reports record
+`revision_match: true`. The E5 report also records both raw/prefixed query and
+document comparisons (`query: ` and `passage: `).

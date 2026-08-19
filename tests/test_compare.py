@@ -6,7 +6,6 @@ from embed_parity.compare import Thresholds, compare_backends
 from embed_parity.probes import Probe, built_in_probes
 from tests.fakes import FakeBackend
 
-
 PROBES = built_in_probes()[:24]
 
 
@@ -73,7 +72,9 @@ def test_large_vector_perturbation_fails():
 
 
 def test_candidate_truncation_boundary_is_minimized():
-    factory = lambda n: " ".join(f"token{i}" for i in range(n))
+    def factory(n):
+        return " ".join(f"token{i}" for i in range(n))
+
     report = run(
         candidate=FakeBackend(truncate=256),
         length_factory=factory,
@@ -92,11 +93,36 @@ def test_batch_dependent_candidate_is_diagnosed():
 
 
 def test_query_prefix_difference_is_diagnosed():
-    queries = [Probe(f"q{i}", "query", text) for i, text in enumerate(("best tea", "reset password", "nearby trains"))]
+    queries = [
+        Probe(f"q{i}", "query", text)
+        for i, text in enumerate(("best tea", "reset password", "nearby trains"))
+    ]
     prefix = "query: "
-    report = run(model_id="intfloat/e5-small-v2", probes=queries, candidate=FakeBackend(prefix=prefix), batch_sizes=(1,))
+    report = run(
+        model_id="intfloat/e5-small-v2",
+        probes=queries,
+        candidate=FakeBackend(prefix=prefix),
+        batch_sizes=(1,),
+    )
     assert "query_prefix_mismatch" in codes(report)
-    assert report["prefix_analysis"]["scores"]["reference_prefixed_to_candidate_raw"] > 0.999
+    assert (
+        report["prefix_analysis"]["query"]["scores"]["reference_prefixed_to_candidate_raw"] > 0.999
+    )
+
+
+def test_document_prefix_difference_is_diagnosed():
+    documents = [
+        Probe(f"d{i}", "document", text)
+        for i, text in enumerate(("tea guide", "password instructions", "train timetable"))
+    ]
+    report = run(
+        model_id="intfloat/e5-small-v2",
+        probes=documents,
+        candidate=FakeBackend(prefix="passage: "),
+        batch_sizes=(1,),
+    )
+    assert "query_prefix_mismatch" in codes(report)
+    assert report["prefix_analysis"]["document"]["possible_mismatch"]
 
 
 def test_nan_output_fails_structural_checks():

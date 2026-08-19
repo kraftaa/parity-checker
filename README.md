@@ -5,7 +5,7 @@ Embeddings Inference (TEI) deployment reproduce the embedding behavior of the
 same model through SentenceTransformers?
 
 It checks vector direction and norms, pairwise geometry, nearest neighbors,
-batch consistency, model-aware query prefixes, and behavior at controlled token
+batch consistency, model-aware query/document prefixes, and behavior at controlled token
 lengths. When a length failure is found after shorter inputs pass, it performs a
 binary search for the shortest failing token prefix.
 
@@ -27,7 +27,7 @@ official TEI container (choose an image tag appropriate to your environment):
 ```bash
 docker run --gpus all -p 8080:80 \
   -v "$PWD/data:/data" \
-  ghcr.io/huggingface/text-embeddings-inference:latest \
+  ghcr.io/huggingface/text-embeddings-inference:cuda-1.9 \
   --model-id BAAI/bge-small-en-v1.5
 ```
 
@@ -36,6 +36,7 @@ Then compare the runtimes:
 ```bash
 embed-parity compare \
   --model BAAI/bge-small-en-v1.5 \
+  --revision MODEL_COMMIT_SHA \
   --tei http://localhost:8080
 ```
 
@@ -70,6 +71,27 @@ embed-parity compare --model org/model --tei http://localhost:8080 \
 
 Use `--skip-length-analysis` for a fast corpus-only check. Reports include the
 selected batch sizes and lengths plus a SHA-256 fingerprint of the exact corpus.
+If `--json` is set, exit-code-2 execution failures also produce a structured JSON
+error report.
+
+### TEI transport controls
+
+The CLI waits for `/health` before loading the reference model and retries
+transient HTTP failures. Relevant options include:
+
+```bash
+embed-parity compare --model org/model --tei https://tei.example.com \
+  --tei-api-key "$TEI_API_KEY" \
+  --tei-header X-Tenant=search \
+  --tei-retries 4 \
+  --tei-retry-backoff 0.5 \
+  --readiness-timeout 60 \
+  --no-tei-truncate
+```
+
+Set `EMBED_PARITY_TEI_API_KEY` instead of passing the bearer token on the command
+line when possible. `HF_TOKEN` is honored by Hugging Face libraries for private
+or gated reference models. Authentication values are never written to reports.
 
 Exit codes are:
 
@@ -102,9 +124,10 @@ The comparison has four layers:
    identify the most changed neighborhoods.
 
 Both runtimes are rerun at every requested batch size. For E5 and English BGE
-models, query probes also test the model-family-recommended prefix. This is a
-diagnostic observation only: the tool says a prefix *may* explain a difference;
-it does not claim an unobserved server configuration as fact.
+models, query probes test model-family-recommended prefixes; E5 document probes
+also test `passage: `. This is a diagnostic observation only: the tool says a
+prefix *may* explain a difference; it does not claim an unobserved server
+configuration as fact.
 
 TEI metadata endpoints vary by server version. The adapter tries `/info` and `/`,
 records the complete JSON object, and promotes recognized model, revision, dtype,
@@ -115,7 +138,11 @@ dtype difference is diagnostic but does not fail otherwise-equivalent vectors.
 ## Tests and broken fixtures
 
 ```bash
-pytest
+pip install -e '.[dev]'
+ruff format --check .
+ruff check .
+mypy embed_parity
+pytest -m 'not integration' --cov
 ```
 
 The deterministic fake backends and mocked HTTP adapter prove detection of all requested classes:
@@ -142,10 +169,16 @@ pytest -m integration -vv
 ```
 
 The three models were also run against TEI 1.9.3 on Apple Metal on August 19,
-2026. All baseline configurations passed. A real MiniLM negative control with
+2026 with identical pinned model commit SHAs on both runtimes. All baseline
+configurations passed. A real MiniLM negative control with
 TEI pooling deliberately changed from `mean` to `cls` failed and was diagnosed
 as a known pooling mismatch. See [the experiment report](reports/README.md) and
 the machine-readable JSON files in `reports/`.
+
+The `live TEI parity` GitHub Actions workflow runs pinned MiniLM weekly and on
+manual dispatch. Tagging `v0.2.0` builds a GitHub release and publishes to PyPI
+through trusted publishing after the repository's `pypi` environment and PyPI
+trusted publisher are configured.
 
 ## Scope and interpretation
 

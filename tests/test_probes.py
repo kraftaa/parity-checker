@@ -34,4 +34,3 @@ def test_load_jsonl_probes_rejects_bad_input(tmp_path, content, message):
     path.write_text(content, encoding="utf-8")
     with pytest.raises(ValueError, match=message):
         load_jsonl_probes(path)
-

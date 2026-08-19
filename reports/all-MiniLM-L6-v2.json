@@ -5,14 +5,14 @@
         {
           "batch_a": 1,
           "batch_b": 8,
-          "mean_cosine": 0.9999998496064815,
+          "mean_cosine": 0.9999998282337829,
           "minimum_cosine": 0.9999986029511916,
           "passed": true
         },
         {
           "batch_a": 1,
           "batch_b": 32,
-          "mean_cosine": 0.9999997734051547,
+          "mean_cosine": 0.9999997838923161,
           "minimum_cosine": 0.9999986029511916,
           "passed": true
         }
@@ -43,6 +43,8 @@
     "dtype": "float16",
     "model_id": "sentence-transformers/all-MiniLM-L6-v2",
     "pooling": "mean",
+    "request_truncation": true,
+    "resolved_revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
     "runtime": "TEI",
     "server_metadata": {
       "auto_truncate": true,
@@ -54,7 +56,7 @@
       "max_input_length": 256,
       "model_dtype": "float16",
       "model_id": "sentence-transformers/all-MiniLM-L6-v2",
-      "model_sha": null,
+      "model_sha": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
       "model_type": {
         "embedding": {
           "pooling": "mean"
@@ -150,7 +152,7 @@
     "candidate_dtype": "float16",
     "candidate_model_id": "sentence-transformers/all-MiniLM-L6-v2",
     "candidate_pooling": "mean",
-    "candidate_revision": null,
+    "candidate_revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
     "dtype_match": false,
     "model_id_match": true,
     "passed": true,
@@ -159,7 +161,7 @@
     "reference_model_id": "sentence-transformers/all-MiniLM-L6-v2",
     "reference_pooling": "mean",
     "reference_revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
-    "revision_match": null
+    "revision_match": true
   },
   "model": "sentence-transformers/all-MiniLM-L6-v2",
   "neighbors": {
@@ -239,7 +241,8 @@
     "transformers_version": "5.15.0"
   },
   "requested_probe_count": 100,
-  "schema_version": 1,
+  "schema_version": 2,
+  "tool_version": "0.2.0",
   "skipped_probes": [
     {
       "category": "empty",

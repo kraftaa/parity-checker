@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 import numpy as np
 
@@ -88,10 +89,14 @@ class SentenceTransformersBackend:
             "resolved_revision": revision,
             **self._versions,
             "device": str(self.model.device),
-            "dtype": str(first_parameter.dtype).removeprefix("torch.") if first_parameter is not None else None,
+            "dtype": str(first_parameter.dtype).removeprefix("torch.")
+            if first_parameter is not None
+            else None,
             "embedding_dimension": dimension_getter(),
             "pooling": pooling_modes[0] if len(pooling_modes) == 1 else pooling_modes or None,
-            "normalization_setting": self.normalize if self.normalize is not None else "model_default",
+            "normalization_setting": self.normalize
+            if self.normalize is not None
+            else "model_default",
             "normalization_module_present": any(
                 module.__class__.__name__ == "Normalize" for module in self.model.modules()
             ),

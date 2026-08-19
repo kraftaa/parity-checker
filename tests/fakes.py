@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 import numpy as np
 
@@ -21,9 +22,17 @@ class FakeBackend:
     name = "fake"
 
     def __init__(
-        self, *, dimension: int = 24, normalize: bool = True, noise: float = 0.0,
-        perturb: float = 0.0, truncate: int | None = None, batch_sensitive: bool = False,
-        prefix: str | None = None, nan: bool = False, salt: str = "",
+        self,
+        *,
+        dimension: int = 24,
+        normalize: bool = True,
+        noise: float = 0.0,
+        perturb: float = 0.0,
+        truncate: int | None = None,
+        batch_sensitive: bool = False,
+        prefix: str | None = None,
+        nan: bool = False,
+        salt: str = "",
         metadata: dict[str, Any] | None = None,
     ) -> None:
         self.dimension = dimension

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, asdict
+from collections.abc import Callable
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Callable
 
 
 @dataclass(frozen=True)
@@ -19,8 +19,12 @@ class Probe:
 def built_in_probes() -> list[Probe]:
     """Return a deterministic, varied 100-probe corpus."""
     fixed: list[tuple[str, str]] = [
-        ("short", "Hello."), ("short", "A"), ("short", "the quick brown fox"),
-        ("empty", ""), ("empty", " "), ("empty", "\n"),
+        ("short", "Hello."),
+        ("short", "A"),
+        ("short", "the quick brown fox"),
+        ("empty", ""),
+        ("empty", " "),
+        ("empty", "\n"),
         ("semantic", "A dog runs through a grassy field."),
         ("semantic", "A canine is sprinting across the lawn."),
         ("semantic", "How do I reset my password?"),
@@ -30,14 +34,29 @@ def built_in_probes() -> list[Probe]:
         ("query", "best noise cancelling headphones"),
         ("query", "weather in Montréal tomorrow"),
         ("query", "python sort dictionary by value"),
-        ("document", "Noise-cancelling headphones reduce ambient sound using active signal processing."),
+        (
+            "document",
+            "Noise-cancelling headphones reduce ambient sound using active signal processing.",
+        ),
         ("document", "To sort a Python mapping, pass its items to sorted with a key function."),
-        ("paragraph", "Embedding models map text into numerical vectors. Similar meanings should occupy nearby regions, while unrelated ideas should be farther apart."),
-        ("paragraph", "A database transaction groups operations into a unit of work. Atomicity ensures that either every operation succeeds or none is committed."),
+        (
+            "paragraph",
+            "Embedding models map text into numerical vectors. Similar meanings should occupy "
+            "nearby regions, while unrelated ideas should be farther apart.",
+        ),
+        (
+            "paragraph",
+            "A database transaction groups operations into a unit of work. Atomicity ensures "
+            "that either every operation succeeds or none is committed.",
+        ),
         ("code", "def fib(n):\n    return n if n < 2 else fib(n-1) + fib(n-2)"),
         ("code", "const unique = values => [...new Set(values)];"),
         ("code", "SELECT customer_id, SUM(total) FROM orders GROUP BY customer_id;"),
-        ("sql", "WITH recent AS (SELECT * FROM events WHERE created_at >= CURRENT_DATE - INTERVAL '7 days') SELECT count(*) FROM recent;"),
+        (
+            "sql",
+            "WITH recent AS (SELECT * FROM events WHERE created_at >= CURRENT_DATE - INTERVAL "
+            "'7 days') SELECT count(*) FROM recent;",
+        ),
         ("numbers", "0 1 -1 3.1415926535 1e10 999999999999"),
         ("numbers", "Order 48392 costs $1,024.56 and has 17 items."),
         ("punctuation", "!?.,;:—–…()[]{} <> / \\ | @#$%^&*_+="),
@@ -49,7 +68,8 @@ def built_in_probes() -> list[Probe]:
         ("non_english", "人工知能は意味検索を改善します。"),
         ("non_english", "الذكاء الاصطناعي يحسن البحث الدلالي."),
         ("non_english", "Искусственный интеллект улучшает семантический поиск."),
-        ("case", "EMBEDDING RUNTIME PARITY"), ("case", "embedding runtime parity"),
+        ("case", "EMBEDDING RUNTIME PARITY"),
+        ("case", "embedding runtime parity"),
         ("whitespace", "multiple    spaces\tand\nnewlines"),
         ("markup", "<p>Hello <strong>world</strong></p>"),
         ("markup", "# Heading\n\n- alpha\n- beta\n- gamma"),
@@ -57,8 +77,16 @@ def built_in_probes() -> list[Probe]:
     ]
     probes = [Probe(f"p{i:03d}", category, text) for i, (category, text) in enumerate(fixed)]
     topics = [
-        "astronomy", "baking", "distributed systems", "gardening", "classical music",
-        "public transit", "marine biology", "cybersecurity", "woodworking", "economics",
+        "astronomy",
+        "baking",
+        "distributed systems",
+        "gardening",
+        "classical music",
+        "public transit",
+        "marine biology",
+        "cybersecurity",
+        "woodworking",
+        "economics",
     ]
     templates = [
         "A concise introduction to {topic}, including practical examples and common terminology.",
@@ -118,4 +146,11 @@ def recommended_query_prefix(model_id: str) -> str | None:
         return "query: "
     if "bge-" in lower and "-en" in lower:
         return "Represent this sentence for searching relevant passages: "
+    return None
+
+
+def recommended_document_prefix(model_id: str) -> str | None:
+    lower = model_id.lower()
+    if "e5-" in lower or "/e5" in lower:
+        return "passage: "
     return None

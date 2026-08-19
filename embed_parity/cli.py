@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 
 from . import __version__
@@ -8,7 +9,7 @@ from .backends.sentence_transformers import SentenceTransformersBackend
 from .backends.tei import TEIBackend
 from .compare import Thresholds, compare_backends
 from .probes import DEFAULT_LENGTHS, built_in_probes, load_jsonl_probes
-from .report import render_text, write_json
+from .report import render_text, write_error_json, write_json
 
 
 def _batch_sizes(value: str) -> tuple[int, ...]:
@@ -30,8 +31,17 @@ def _lengths(value: str) -> tuple[int, ...]:
     return lengths
 
 
+def _header(value: str) -> tuple[str, str]:
+    name, separator, header_value = value.partition("=")
+    if not separator or not name.strip() or not header_value:
+        raise argparse.ArgumentTypeError("headers must use NAME=VALUE")
+    return name.strip(), header_value
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="embed-parity", description="Compare SentenceTransformers and TEI embeddings")
+    parser = argparse.ArgumentParser(
+        prog="embed-parity", description="Compare SentenceTransformers and TEI embeddings"
+    )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command", required=True)
     compare = subparsers.add_parser("compare", help="run the parity comparison")
@@ -44,11 +54,43 @@ def build_parser() -> argparse.ArgumentParser:
     norm.add_argument("--normalize", action="store_true", help="normalize reference embeddings")
     norm.add_argument("--no-normalize", action="store_true", help="disable reference normalization")
     compare.add_argument("--batch-sizes", type=_batch_sizes, default=(1, 8, 32))
-    compare.add_argument("--lengths", type=_lengths, default=DEFAULT_LENGTHS, help="comma-separated token lengths")
-    compare.add_argument("--skip-length-analysis", action="store_true", help="skip tokenizer-controlled long probes")
-    compare.add_argument("--probe-file", metavar="JSONL", help="replace the built-in corpus with JSONL probes")
-    compare.add_argument("--timeout", type=float, default=120.0, help="TEI request timeout in seconds")
-    compare.add_argument("--json", metavar="PATH", help="also write the complete machine-readable report")
+    compare.add_argument(
+        "--lengths", type=_lengths, default=DEFAULT_LENGTHS, help="comma-separated token lengths"
+    )
+    compare.add_argument(
+        "--skip-length-analysis", action="store_true", help="skip tokenizer-controlled long probes"
+    )
+    compare.add_argument(
+        "--probe-file", metavar="JSONL", help="replace the built-in corpus with JSONL probes"
+    )
+    compare.add_argument(
+        "--timeout", type=float, default=120.0, help="TEI request timeout in seconds"
+    )
+    compare.add_argument(
+        "--readiness-timeout", type=float, default=30.0, help="seconds to wait for TEI health"
+    )
+    compare.add_argument(
+        "--tei-retries", type=int, default=2, help="retries for transient TEI failures"
+    )
+    compare.add_argument(
+        "--tei-retry-backoff", type=float, default=0.25, help="initial retry backoff in seconds"
+    )
+    compare.add_argument(
+        "--tei-api-key",
+        default=os.getenv("EMBED_PARITY_TEI_API_KEY"),
+        help="TEI bearer token (or set EMBED_PARITY_TEI_API_KEY)",
+    )
+    compare.add_argument(
+        "--tei-header", type=_header, action="append", default=[], metavar="NAME=VALUE"
+    )
+    truncation = compare.add_mutually_exclusive_group()
+    truncation.add_argument(
+        "--tei-truncate", dest="tei_truncate", action="store_true", default=True
+    )
+    truncation.add_argument("--no-tei-truncate", dest="tei_truncate", action="store_false")
+    compare.add_argument(
+        "--json", metavar="PATH", help="also write the complete machine-readable report"
+    )
     compare.add_argument("--vector-mean", type=float, default=Thresholds.vector_mean)
     compare.add_argument("--vector-min", type=float, default=Thresholds.vector_min)
     compare.add_argument("--geometry-spearman", type=float, default=Thresholds.geometry_spearman)
@@ -57,19 +99,19 @@ def build_parser() -> argparse.ArgumentParser:
     compare.add_argument("--top5-overlap", type=float, default=Thresholds.top5_overlap)
     compare.add_argument("--top10-overlap", type=float, default=Thresholds.top10_overlap)
     compare.add_argument("--batch-min", type=float, default=Thresholds.batch_min)
-    compare.add_argument("--norm-relative-difference", type=float, default=Thresholds.norm_relative_difference)
+    compare.add_argument(
+        "--norm-relative-difference", type=float, default=Thresholds.norm_relative_difference
+    )
     compare.add_argument("--prefix-improvement", type=float, default=Thresholds.prefix_improvement)
     return parser
 
 
 def run_compare(args: argparse.Namespace) -> int:
     normalize = True if args.normalize else False if args.no_normalize else None
-    reference = SentenceTransformersBackend(
-        args.model, revision=args.revision, device=args.device, dtype=args.dtype, normalize=normalize
-    )
-    if args.timeout <= 0:
-        raise ValueError("timeout must be positive")
-    candidate = TEIBackend(args.tei, timeout=args.timeout)
+    if args.timeout <= 0 or args.readiness_timeout <= 0:
+        raise ValueError("timeouts must be positive")
+    if args.tei_retries < 0 or args.tei_retry_backoff < 0:
+        raise ValueError("TEI retries and retry backoff cannot be negative")
     thresholds = Thresholds(
         vector_mean=args.vector_mean,
         vector_min=args.vector_min,
@@ -82,7 +124,24 @@ def run_compare(args: argparse.Namespace) -> int:
         norm_relative_difference=args.norm_relative_difference,
         prefix_improvement=args.prefix_improvement,
     )
+    candidate = TEIBackend(
+        args.tei,
+        timeout=args.timeout,
+        api_key=args.tei_api_key,
+        headers=dict(args.tei_header),
+        truncate=args.tei_truncate,
+        retries=args.tei_retries,
+        retry_backoff=args.tei_retry_backoff,
+    )
     try:
+        candidate.wait_until_ready(args.readiness_timeout)
+        reference = SentenceTransformersBackend(
+            args.model,
+            revision=args.revision,
+            device=args.device,
+            dtype=args.dtype,
+            normalize=normalize,
+        )
         probes = load_jsonl_probes(args.probe_file) if args.probe_file else built_in_probes()
         report = compare_backends(
             args.model,
@@ -102,15 +161,32 @@ def run_compare(args: argparse.Namespace) -> int:
         candidate.close()
 
 
+def _write_execution_error(args: argparse.Namespace, error: BaseException) -> None:
+    path = getattr(args, "json", None)
+    if not path:
+        return
+    try:
+        write_error_json(
+            path,
+            model=getattr(args, "model", None),
+            tei=getattr(args, "tei", None),
+            error=error,
+        )
+    except OSError as report_error:
+        print(f"embed-parity: could not write error report: {report_error}", file=sys.stderr)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
         return run_compare(args)
     except KeyboardInterrupt:
+        _write_execution_error(args, KeyboardInterrupt())
         print("embed-parity: interrupted", file=sys.stderr)
         return 2
     except Exception as exc:
+        _write_execution_error(args, exc)
         print(f"embed-parity: execution/configuration failure: {exc}", file=sys.stderr)
         return 2
 

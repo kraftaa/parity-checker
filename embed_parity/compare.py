@@ -141,6 +141,9 @@ def _metadata_compatibility(
     ref_dtype = reference.get("dtype")
     can_dtype = candidate.get("dtype")
     dtype_match = None if ref_dtype is None or can_dtype is None else str(ref_dtype).casefold() == str(can_dtype).casefold()
+    ref_pooling = reference.get("pooling")
+    can_pooling = candidate.get("pooling")
+    pooling_match = None if ref_pooling is None or can_pooling is None else ref_pooling == can_pooling
     return {
         "reference_model_id": ref_model,
         "candidate_model_id": can_model,
@@ -151,7 +154,10 @@ def _metadata_compatibility(
         "reference_dtype": ref_dtype,
         "candidate_dtype": can_dtype,
         "dtype_match": dtype_match,
-        "passed": model_match is not False and revision_match is not False,
+        "reference_pooling": ref_pooling,
+        "candidate_pooling": can_pooling,
+        "pooling_match": pooling_match,
+        "passed": model_match is not False and revision_match is not False and pooling_match is not False,
     }
 
 
@@ -295,6 +301,13 @@ def compare_backends(
     length_factory: Callable[[int], str] | None = None,
     lengths: Sequence[int] = (32, 64, 128, 256, 384, 512, 768, 1024),
 ) -> dict[str, Any]:
+    requested_probes = list(probes)
+    empty_supported = all(
+        getattr(backend, "supports_empty_inputs", True)
+        for backend in (reference, candidate)
+    )
+    skipped_probes = [probe for probe in requested_probes if not empty_supported and not probe.text.strip()]
+    probes = [probe for probe in requested_probes if probe not in skipped_probes]
     if not batch_sizes or any(size < 1 for size in batch_sizes):
         raise ValueError("batch sizes must contain positive integers")
     if len(set(batch_sizes)) != len(batch_sizes):
@@ -344,7 +357,12 @@ def compare_backends(
         "reference": reference_metadata,
         "candidate": candidate_metadata,
         "metadata_compatibility": metadata_compatibility,
+        "requested_probe_count": len(requested_probes),
         "probe_count": len(probes),
+        "skipped_probes": [
+            {"id": probe.id, "category": probe.category, "reason": "empty input unsupported by a runtime"}
+            for probe in skipped_probes
+        ],
         "probe_fingerprint": _probe_fingerprint(probes),
         "configuration": {
             "batch_sizes": list(batch_sizes),

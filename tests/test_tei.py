@@ -18,6 +18,7 @@ def test_tei_metadata_promotion_and_request_batching():
                 "model_id": "org/model",
                 "model_sha": "abcdef012345",
                 "dtype": "float16",
+                "model_type": {"embedding": {"pooling": "mean"}},
                 "max_input_length": 512,
                 "dimension": 3,
             })
@@ -34,6 +35,7 @@ def test_tei_metadata_promotion_and_request_batching():
     assert np.array_equal(vectors[:, 0], [1, 2, 3, 4, 5])
     assert backend.metadata["resolved_revision"] == "abcdef012345"
     assert backend.metadata["tokenizer_max_length"] == 512
+    assert backend.metadata["pooling"] == "mean"
 
 
 def test_tei_rejects_wrong_output_count():
@@ -58,4 +60,3 @@ def test_tei_rejects_ragged_embeddings():
     backend = TEIBackend("http://tei.test", client=client)
     with pytest.raises(RuntimeError, match="malformed or ragged"):
         backend.encode(["a", "b"], batch_size=2)
-

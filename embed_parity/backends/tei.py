@@ -8,6 +8,8 @@ import numpy as np
 
 class TEIBackend:
     name = "TEI"
+    # TEI rejects empty or whitespace-only inputs during request validation.
+    supports_empty_inputs = False
 
     def __init__(
         self,
@@ -43,7 +45,7 @@ class TEIBackend:
         aliases = {
             "model_id": ("model_id", "modelId", "model_name"),
             "resolved_revision": ("revision", "model_sha", "sha"),
-            "dtype": ("dtype",),
+            "dtype": ("dtype", "model_dtype"),
             "embedding_dimension": ("embedding_dimension", "dimension", "dim"),
             "tokenizer_max_length": ("max_input_length", "max_seq_length", "max_length"),
         }
@@ -58,6 +60,11 @@ class TEIBackend:
                 if isinstance(value, (str, int, float, bool)) and value != "":
                     target[output_key] = value
                     break
+        model_type = payload.get("model_type")
+        embedding = model_type.get("embedding") if isinstance(model_type, dict) else None
+        pooling = embedding.get("pooling") if isinstance(embedding, dict) else None
+        if isinstance(pooling, str) and pooling:
+            target["pooling"] = pooling
 
     @property
     def metadata(self) -> dict[str, Any]:
@@ -73,7 +80,13 @@ class TEIBackend:
                 self.url + "/embed",
                 json={"inputs": chunk, "truncate": True},
             )
-            response.raise_for_status()
+            if not response.is_success:
+                previews = [repr(text[:80]) for text in chunk[:3]]
+                raise RuntimeError(
+                    f"TEI /embed failed with HTTP {response.status_code} for inputs "
+                    f"{start}..{start + len(chunk) - 1} ({', '.join(previews)}): "
+                    f"{response.text[:500]}"
+                )
             payload = response.json()
             if not isinstance(payload, list):
                 raise RuntimeError("TEI /embed returned a non-list response")

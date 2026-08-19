@@ -1,0 +1,349 @@
+{
+  "batch_consistency": {
+    "candidate": {
+      "comparisons": [
+        {
+          "batch_a": 1,
+          "batch_b": 8,
+          "mean_cosine": 0.9999998828031846,
+          "minimum_cosine": 0.9999990645494241,
+          "passed": true
+        },
+        {
+          "batch_a": 1,
+          "batch_b": 32,
+          "mean_cosine": 0.9999998481451161,
+          "minimum_cosine": 0.9999990645494241,
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    "reference": {
+      "comparisons": [
+        {
+          "batch_a": 1,
+          "batch_b": 8,
+          "mean_cosine": 0.9999999999998608,
+          "minimum_cosine": 0.9999999999993625,
+          "passed": true
+        },
+        {
+          "batch_a": 1,
+          "batch_b": 32,
+          "mean_cosine": 0.999999999999841,
+          "minimum_cosine": 0.9999999999993625,
+          "passed": true
+        }
+      ],
+      "passed": true
+    }
+  },
+  "candidate": {
+    "dtype": "float16",
+    "model_id": "sentence-transformers/all-MiniLM-L6-v2",
+    "pooling": "cls",
+    "runtime": "TEI",
+    "server_metadata": {
+      "auto_truncate": true,
+      "docker_label": null,
+      "max_batch_requests": null,
+      "max_batch_tokens": 16384,
+      "max_client_batch_size": 32,
+      "max_concurrent_requests": 512,
+      "max_input_length": 256,
+      "model_dtype": "float16",
+      "model_id": "sentence-transformers/all-MiniLM-L6-v2",
+      "model_sha": null,
+      "model_type": {
+        "embedding": {
+          "pooling": "cls"
+        }
+      },
+      "served_model_name": "sentence-transformers/all-MiniLM-L6-v2",
+      "sha": null,
+      "tokenization_workers": 9,
+      "version": "1.9.3"
+    },
+    "tokenizer_max_length": 256,
+    "url": "http://127.0.0.1:8080"
+  },
+  "configuration": {
+    "batch_sizes": [
+      1,
+      8,
+      32
+    ],
+    "length_analysis_enabled": false,
+    "lengths": []
+  },
+  "diagnostics": [
+    {
+      "code": "dtype_difference",
+      "message": "Runtime dtypes differ (float32 vs float16); small numerical differences may be expected."
+    },
+    {
+      "code": "pooling_mismatch",
+      "message": "Known pooling modes differ: reference 'mean', candidate 'cls'."
+    },
+    {
+      "code": "embedding_space_mismatch",
+      "message": "Embedding directions differ materially; possible revision, dtype, preprocessing, or runtime mismatch."
+    }
+  ],
+  "geometry": {
+    "maximum_difference": 0.9083649100951787,
+    "mean_absolute_difference": 0.5078489806203179,
+    "pairs_compared": 4656,
+    "pearson": 0.5313736939556286,
+    "spearman": 0.3456286647694444
+  },
+  "length_analysis": null,
+  "metadata_compatibility": {
+    "candidate_dtype": "float16",
+    "candidate_model_id": "sentence-transformers/all-MiniLM-L6-v2",
+    "candidate_pooling": "cls",
+    "candidate_revision": null,
+    "dtype_match": false,
+    "model_id_match": true,
+    "passed": false,
+    "pooling_match": false,
+    "reference_dtype": "float32",
+    "reference_model_id": "sentence-transformers/all-MiniLM-L6-v2",
+    "reference_pooling": "mean",
+    "reference_revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+    "revision_match": null
+  },
+  "model": "sentence-transformers/all-MiniLM-L6-v2",
+  "neighbors": {
+    "most_changed": [
+      {
+        "id": "p024",
+        "text": "Order 48392 costs $1,024.56 and has 17 items.",
+        "top_10_overlap": 0.0
+      },
+      {
+        "id": "p009",
+        "text": "Steps for changing an account password.",
+        "top_10_overlap": 0.1
+      },
+      {
+        "id": "p002",
+        "text": "the quick brown fox",
+        "top_10_overlap": 0.2
+      },
+      {
+        "id": "p008",
+        "text": "How do I reset my password?",
+        "top_10_overlap": 0.2
+      },
+      {
+        "id": "p013",
+        "text": "weather in Montr\u00e9al tomorrow",
+        "top_10_overlap": 0.2
+      },
+      {
+        "id": "p016",
+        "text": "To sort a Python mapping, pass its items to sorted with a key function.",
+        "top_10_overlap": 0.2
+      },
+      {
+        "id": "p019",
+        "text": "def fib(n):\n    return n if n < 2 else fib(n-1) + fib(n-2)",
+        "top_10_overlap": 0.2
+      },
+      {
+        "id": "p020",
+        "text": "const unique = values => [...new Set(values)];",
+        "top_10_overlap": 0.2
+      },
+      {
+        "id": "p022",
+        "text": "WITH recent AS (SELECT * FROM events WHERE created_at >= CURRENT_DATE - INTERVAL '7 days') SELECT count(*) FROM recent;",
+        "top_10_overlap": 0.2
+      },
+      {
+        "id": "p029",
+        "text": "L'intelligence artificielle am\u00e9liore la recherche s\u00e9mantique.",
+        "top_10_overlap": 0.2
+      }
+    ],
+    "top_10_overlap": 0.5185567010309278,
+    "top_1_overlap": 0.5876288659793815,
+    "top_5_overlap": 0.5690721649484536
+  },
+  "passed": false,
+  "prefix_analysis": null,
+  "probe_count": 97,
+  "probe_fingerprint": "sha256:168cfbb85047d9c5e06a5fc7c826eb38868877adec9a18291b00a66a7288d197",
+  "reference": {
+    "device": "cpu",
+    "dtype": "float32",
+    "embedding_dimension": 384,
+    "model_id": "sentence-transformers/all-MiniLM-L6-v2",
+    "normalization_module_present": true,
+    "normalization_setting": "model_default",
+    "pooling": "mean",
+    "resolved_revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+    "runtime": "SentenceTransformers",
+    "sentence_transformers_version": "6.0.0",
+    "tokenizer_max_length": 256,
+    "torch_version": "2.13.0",
+    "transformers_version": "5.15.0"
+  },
+  "requested_probe_count": 100,
+  "schema_version": 1,
+  "skipped_probes": [
+    {
+      "category": "empty",
+      "id": "p003",
+      "reason": "empty input unsupported by a runtime"
+    },
+    {
+      "category": "empty",
+      "id": "p004",
+      "reason": "empty input unsupported by a runtime"
+    },
+    {
+      "category": "empty",
+      "id": "p005",
+      "reason": "empty input unsupported by a runtime"
+    }
+  ],
+  "structural": {
+    "candidate": {
+      "all_finite": true,
+      "count": 97,
+      "dimension": 384,
+      "inf_count": 0,
+      "nan_count": 0,
+      "norms": {
+        "max": 1.000000090651226,
+        "mean": 1.0000000010761148,
+        "median": 1.0000000045103246,
+        "min": 0.9999999288237391,
+        "p05": 0.99999994339675,
+        "p95": 1.0000000525529442,
+        "std": 3.6405465193040496e-08
+      },
+      "shape": [
+        97,
+        384
+      ],
+      "zero_vectors": 0
+    },
+    "finite_vectors": true,
+    "norm_compatible": true,
+    "norm_distribution_relative_difference": {
+      "median": 8.670715626038141e-09,
+      "p05": 5.081641754434303e-09,
+      "p95": 1.858020938166502e-08
+    },
+    "norm_max_relative_difference": 1.858020938166502e-08,
+    "norm_relative_difference": 8.507934355110106e-10,
+    "reference": {
+      "all_finite": true,
+      "count": 97,
+      "dimension": 384,
+      "inf_count": 0,
+      "nan_count": 0,
+      "norms": {
+        "max": 1.0000000966677172,
+        "mean": 1.0000000002253213,
+        "median": 0.999999995839609,
+        "min": 0.9999998986275883,
+        "p05": 0.9999999383151086,
+        "p95": 1.000000071133155,
+        "std": 4.249267411259227e-08
+      },
+      "shape": [
+        97,
+        384
+      ],
+      "zero_vectors": 0
+    },
+    "same_dimension": true,
+    "same_output_count": true
+  },
+  "thresholds": {
+    "batch_min": 0.999,
+    "geometry_mae": 0.01,
+    "geometry_spearman": 0.995,
+    "norm_relative_difference": 0.05,
+    "prefix_improvement": 0.02,
+    "top10_overlap": 0.95,
+    "top1_agreement": 0.95,
+    "top5_overlap": 0.95,
+    "vector_mean": 0.999,
+    "vector_min": 0.99
+  },
+  "vector": {
+    "mean": 0.48630114580160827,
+    "median": 0.4945781701293957,
+    "minimum": 0.2886764534584569,
+    "p01": 0.3233432658863279,
+    "p05": 0.35637631071523124,
+    "worst": [
+      {
+        "category": "generated",
+        "cosine": 0.2886764534584569,
+        "id": "p097",
+        "text": "Recent research discusses tradeoffs, measurements, and reproducibility in economics."
+      },
+      {
+        "category": "generated",
+        "cosine": 0.3247877164041559,
+        "id": "p055",
+        "text": "Recent research discusses tradeoffs, measurements, and reproducibility in distributed systems."
+      },
+      {
+        "category": "non_english",
+        "cosine": 0.3477622559586203,
+        "id": "p030",
+        "text": "K\u00fcnstliche Intelligenz ver\u00e4ndert die semantische Suche."
+      },
+      {
+        "category": "short",
+        "cosine": 0.34802272415101293,
+        "id": "p000",
+        "text": "Hello."
+      },
+      {
+        "category": "paragraph",
+        "cosine": 0.35454475090977355,
+        "id": "p017",
+        "text": "Embedding models map text into numerical vectors. Similar meanings should occupy nearby regions, while unrelated ideas should be farther apart."
+      },
+      {
+        "category": "punctuation",
+        "cosine": 0.35683420066659566,
+        "id": "p025",
+        "text": "!?.,;:\u2014\u2013\u2026()[]{} <> / \\ | @#$%^&*_+="
+      },
+      {
+        "category": "semantic",
+        "cosine": 0.3591743023038476,
+        "id": "p008",
+        "text": "How do I reset my password?"
+      },
+      {
+        "category": "non_english",
+        "cosine": 0.37367307023143953,
+        "id": "p032",
+        "text": "\u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a \u064a\u062d\u0633\u0646 \u0627\u0644\u0628\u062d\u062b \u0627\u0644\u062f\u0644\u0627\u0644\u064a."
+      },
+      {
+        "category": "generated",
+        "cosine": 0.3752792787531852,
+        "id": "p056",
+        "text": "Beginner's checklist: define a goal, gather evidence, and evaluate results for distributed systems."
+      },
+      {
+        "category": "generated",
+        "cosine": 0.37544548087533225,
+        "id": "p085",
+        "text": "Recent research discusses tradeoffs, measurements, and reproducibility in cybersecurity."
+      }
+    ]
+  }
+}

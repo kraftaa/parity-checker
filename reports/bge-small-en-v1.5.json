@@ -1,0 +1,406 @@
+{
+  "batch_consistency": {
+    "candidate": {
+      "comparisons": [
+        {
+          "batch_a": 1,
+          "batch_b": 8,
+          "mean_cosine": 0.9999997304575446,
+          "minimum_cosine": 0.9999983120751018,
+          "passed": true
+        },
+        {
+          "batch_a": 1,
+          "batch_b": 32,
+          "mean_cosine": 0.999999632108325,
+          "minimum_cosine": 0.9999983120751018,
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    "reference": {
+      "comparisons": [
+        {
+          "batch_a": 1,
+          "batch_b": 8,
+          "mean_cosine": 0.9999999999998668,
+          "minimum_cosine": 0.9999999999995379,
+          "passed": true
+        },
+        {
+          "batch_a": 1,
+          "batch_b": 32,
+          "mean_cosine": 0.9999999999998468,
+          "minimum_cosine": 0.9999999999995379,
+          "passed": true
+        }
+      ],
+      "passed": true
+    }
+  },
+  "candidate": {
+    "dtype": "float16",
+    "model_id": "BAAI/bge-small-en-v1.5",
+    "pooling": "cls",
+    "runtime": "TEI",
+    "server_metadata": {
+      "auto_truncate": true,
+      "docker_label": null,
+      "max_batch_requests": null,
+      "max_batch_tokens": 16384,
+      "max_client_batch_size": 32,
+      "max_concurrent_requests": 512,
+      "max_input_length": 512,
+      "model_dtype": "float16",
+      "model_id": "BAAI/bge-small-en-v1.5",
+      "model_sha": null,
+      "model_type": {
+        "embedding": {
+          "pooling": "cls"
+        }
+      },
+      "served_model_name": "BAAI/bge-small-en-v1.5",
+      "sha": null,
+      "tokenization_workers": 9,
+      "version": "1.9.3"
+    },
+    "tokenizer_max_length": 512,
+    "url": "http://127.0.0.1:8080"
+  },
+  "configuration": {
+    "batch_sizes": [
+      1,
+      8,
+      32
+    ],
+    "length_analysis_enabled": true,
+    "lengths": [
+      32,
+      64,
+      128,
+      256,
+      384,
+      512,
+      768,
+      1024
+    ]
+  },
+  "diagnostics": [
+    {
+      "code": "dtype_difference",
+      "message": "Runtime dtypes differ (float32 vs float16); small numerical differences may be expected."
+    }
+  ],
+  "geometry": {
+    "maximum_difference": 0.0012572284033445236,
+    "mean_absolute_difference": 0.0004370408278147475,
+    "pairs_compared": 4656,
+    "pearson": 0.9999982023981083,
+    "spearman": 0.9999964453619553
+  },
+  "length_analysis": {
+    "minimal_reproducer": null,
+    "passed": true,
+    "points": [
+      {
+        "cosine": 0.9999983104924645,
+        "passed": true,
+        "tokens": 32
+      },
+      {
+        "cosine": 0.9999980316144581,
+        "passed": true,
+        "tokens": 64
+      },
+      {
+        "cosine": 0.9999971134657125,
+        "passed": true,
+        "tokens": 128
+      },
+      {
+        "cosine": 0.9999977832630155,
+        "passed": true,
+        "tokens": 256
+      },
+      {
+        "cosine": 0.9999976767023028,
+        "passed": true,
+        "tokens": 384
+      },
+      {
+        "cosine": 0.9999977813259631,
+        "passed": true,
+        "tokens": 512
+      },
+      {
+        "cosine": 0.9999977813259631,
+        "passed": true,
+        "tokens": 768
+      },
+      {
+        "cosine": 0.9999977813259631,
+        "passed": true,
+        "tokens": 1024
+      }
+    ],
+    "threshold": 0.99
+  },
+  "metadata_compatibility": {
+    "candidate_dtype": "float16",
+    "candidate_model_id": "BAAI/bge-small-en-v1.5",
+    "candidate_pooling": "cls",
+    "candidate_revision": null,
+    "dtype_match": false,
+    "model_id_match": true,
+    "passed": true,
+    "pooling_match": true,
+    "reference_dtype": "float32",
+    "reference_model_id": "BAAI/bge-small-en-v1.5",
+    "reference_pooling": "cls",
+    "reference_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+    "revision_match": null
+  },
+  "model": "BAAI/bge-small-en-v1.5",
+  "neighbors": {
+    "most_changed": [
+      {
+        "id": "p039",
+        "text": "/var/lib/models/model.onnx?revision=abc123",
+        "top_10_overlap": 0.9
+      },
+      {
+        "id": "p093",
+        "text": "Frequently asked question number 93: how can we test assumptions about woodworking?",
+        "top_10_overlap": 0.9
+      },
+      {
+        "id": "p000",
+        "text": "Hello.",
+        "top_10_overlap": 1.0
+      },
+      {
+        "id": "p001",
+        "text": "A",
+        "top_10_overlap": 1.0
+      },
+      {
+        "id": "p002",
+        "text": "the quick brown fox",
+        "top_10_overlap": 1.0
+      },
+      {
+        "id": "p006",
+        "text": "A dog runs through a grassy field.",
+        "top_10_overlap": 1.0
+      },
+      {
+        "id": "p007",
+        "text": "A canine is sprinting across the lawn.",
+        "top_10_overlap": 1.0
+      },
+      {
+        "id": "p008",
+        "text": "How do I reset my password?",
+        "top_10_overlap": 1.0
+      },
+      {
+        "id": "p009",
+        "text": "Steps for changing an account password.",
+        "top_10_overlap": 1.0
+      },
+      {
+        "id": "p010",
+        "text": "The telescope observed a distant galaxy.",
+        "top_10_overlap": 1.0
+      }
+    ],
+    "top_10_overlap": 0.9979381443298969,
+    "top_1_overlap": 0.9896907216494846,
+    "top_5_overlap": 0.9938144329896907
+  },
+  "passed": true,
+  "prefix_analysis": {
+    "cross_variant_improvement": -0.050453469471727797,
+    "possible_mismatch": false,
+    "prefix": "Represent this sentence for searching relevant passages: ",
+    "scores": {
+      "prefixed_to_prefixed": 0.9999959187485336,
+      "raw_to_raw": 0.9999982271151806,
+      "reference_prefixed_to_candidate_raw": 0.9494170863186181,
+      "reference_raw_to_candidate_prefixed": 0.9495447576434528
+    }
+  },
+  "probe_count": 97,
+  "probe_fingerprint": "sha256:168cfbb85047d9c5e06a5fc7c826eb38868877adec9a18291b00a66a7288d197",
+  "reference": {
+    "device": "cpu",
+    "dtype": "float32",
+    "embedding_dimension": 384,
+    "model_id": "BAAI/bge-small-en-v1.5",
+    "normalization_module_present": true,
+    "normalization_setting": "model_default",
+    "pooling": "cls",
+    "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+    "runtime": "SentenceTransformers",
+    "sentence_transformers_version": "6.0.0",
+    "tokenizer_max_length": 512,
+    "torch_version": "2.13.0",
+    "transformers_version": "5.15.0"
+  },
+  "requested_probe_count": 100,
+  "schema_version": 1,
+  "skipped_probes": [
+    {
+      "category": "empty",
+      "id": "p003",
+      "reason": "empty input unsupported by a runtime"
+    },
+    {
+      "category": "empty",
+      "id": "p004",
+      "reason": "empty input unsupported by a runtime"
+    },
+    {
+      "category": "empty",
+      "id": "p005",
+      "reason": "empty input unsupported by a runtime"
+    }
+  ],
+  "structural": {
+    "candidate": {
+      "all_finite": true,
+      "count": 97,
+      "dimension": 384,
+      "inf_count": 0,
+      "nan_count": 0,
+      "norms": {
+        "max": 1.000000051251137,
+        "mean": 1.000000001101944,
+        "median": 1.0000000018867867,
+        "min": 0.9999999542685969,
+        "p05": 0.9999999671517449,
+        "p95": 1.000000029187421,
+        "std": 2.0645231017474596e-08
+      },
+      "shape": [
+        97,
+        384
+      ],
+      "zero_vectors": 0
+    },
+    "finite_vectors": true,
+    "norm_compatible": true,
+    "norm_distribution_relative_difference": {
+      "median": 1.3181407988559475e-08,
+      "p05": 4.852712449306363e-08,
+      "p95": 6.93385105405887e-08
+    },
+    "norm_max_relative_difference": 6.93385105405887e-08,
+    "norm_relative_difference": 1.2644539019655804e-08,
+    "reference": {
+      "all_finite": true,
+      "count": 97,
+      "dimension": 384,
+      "inf_count": 0,
+      "nan_count": 0,
+      "norms": {
+        "max": 1.0000001128702427,
+        "mean": 1.0000000137464833,
+        "median": 1.000000015068195,
+        "min": 0.999999879289867,
+        "p05": 0.9999999186246243,
+        "p95": 1.0000000985259383,
+        "std": 5.5382838243820295e-08
+      },
+      "shape": [
+        97,
+        384
+      ],
+      "zero_vectors": 0
+    },
+    "same_dimension": true,
+    "same_output_count": true
+  },
+  "thresholds": {
+    "batch_min": 0.999,
+    "geometry_mae": 0.01,
+    "geometry_spearman": 0.995,
+    "norm_relative_difference": 0.05,
+    "prefix_improvement": 0.02,
+    "top10_overlap": 0.95,
+    "top1_agreement": 0.95,
+    "top5_overlap": 0.95,
+    "vector_mean": 0.999,
+    "vector_min": 0.99
+  },
+  "vector": {
+    "mean": 0.9999981296425238,
+    "median": 0.9999982025653126,
+    "minimum": 0.9999959651684603,
+    "p01": 0.9999960488418728,
+    "p05": 0.9999972679577784,
+    "worst": [
+      {
+        "category": "non_english",
+        "cosine": 0.9999959651684603,
+        "id": "p032",
+        "text": "\u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a \u064a\u062d\u0633\u0646 \u0627\u0644\u0628\u062d\u062b \u0627\u0644\u062f\u0644\u0627\u0644\u064a."
+      },
+      {
+        "category": "punctuation",
+        "cosine": 0.9999960523282649,
+        "id": "p025",
+        "text": "!?.,;:\u2014\u2013\u2026()[]{} <> / \\ | @#$%^&*_+="
+      },
+      {
+        "category": "non_english",
+        "cosine": 0.9999963785402418,
+        "id": "p033",
+        "text": "\u0418\u0441\u043a\u0443\u0441\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0439 \u0438\u043d\u0442\u0435\u043b\u043b\u0435\u043a\u0442 \u0443\u043b\u0443\u0447\u0448\u0430\u0435\u0442 \u0441\u0435\u043c\u0430\u043d\u0442\u0438\u0447\u0435\u0441\u043a\u0438\u0439 \u043f\u043e\u0438\u0441\u043a."
+      },
+      {
+        "category": "generated",
+        "cosine": 0.9999970161409457,
+        "id": "p046",
+        "text": "A concise introduction to baking, including practical examples and common terminology."
+      },
+      {
+        "category": "markup",
+        "cosine": 0.9999971890811497,
+        "id": "p038",
+        "text": "# Heading\n\n- alpha\n- beta\n- gamma"
+      },
+      {
+        "category": "non_english",
+        "cosine": 0.9999972876769356,
+        "id": "p031",
+        "text": "\u4eba\u5de5\u77e5\u80fd\u306f\u610f\u5473\u691c\u7d22\u3092\u6539\u5584\u3057\u307e\u3059\u3002"
+      },
+      {
+        "category": "unicode",
+        "cosine": 0.9999974968973822,
+        "id": "p027",
+        "text": "\u4e2d\u6587\u6587\u672c\u7528\u4e8e\u6d4b\u8bd5\u5d4c\u5165\u6a21\u578b\u3002"
+      },
+      {
+        "category": "generated",
+        "cosine": 0.9999975493428108,
+        "id": "p085",
+        "text": "Recent research discusses tradeoffs, measurements, and reproducibility in cybersecurity."
+      },
+      {
+        "category": "generated",
+        "cosine": 0.9999976208184644,
+        "id": "p079",
+        "text": "Recent research discusses tradeoffs, measurements, and reproducibility in marine biology."
+      },
+      {
+        "category": "generated",
+        "cosine": 0.9999976523543724,
+        "id": "p058",
+        "text": "A concise introduction to gardening, including practical examples and common terminology."
+      }
+    ]
+  }
+}

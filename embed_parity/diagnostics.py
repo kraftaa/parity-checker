@@ -31,6 +31,14 @@ def diagnose(report: dict[str, Any]) -> list[dict[str, str]]:
                 "small numerical differences may be expected."
             ),
         })
+    if metadata.get("pooling_match") is False:
+        findings.append({
+            "code": "pooling_mismatch",
+            "message": (
+                f"Known pooling modes differ: reference {metadata['reference_pooling']!r}, "
+                f"candidate {metadata['candidate_pooling']!r}."
+            ),
+        })
     if not structural["same_output_count"]:
         findings.append({"code": "output_count", "message": "Output counts differ between runtimes."})
     if not structural["same_dimension"]:

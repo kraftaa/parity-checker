@@ -23,6 +23,7 @@ def render_text(report: dict[str, Any]) -> str:
         "",
         "Model",
         f"  {report['model']}",
+        f"  probes: {report['probe_count']} used, {len(report.get('skipped_probes', []))} skipped",
         "",
         "Reference",
         f"  {report['reference'].get('runtime', 'SentenceTransformers')}",
@@ -38,7 +39,7 @@ def render_text(report: dict[str, Any]) -> str:
         lines.append(f"  {key:<32} {_fmt(value)}")
     metadata = report.get("metadata_compatibility", {})
     lines.extend(["", "Metadata compatibility"])
-    for key, label in (("model_id_match", "model identifier"), ("revision_match", "resolved revision"), ("dtype_match", "dtype")):
+    for key, label in (("model_id_match", "model identifier"), ("revision_match", "resolved revision"), ("dtype_match", "dtype"), ("pooling_match", "pooling")):
         value = metadata.get(key)
         outcome = "UNKNOWN" if value is None else _status(value)
         lines.append(f"  {label:<32} {outcome}")

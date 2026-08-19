@@ -86,6 +86,10 @@ languages, and empty or near-empty strings. Long probes are separate: they are
 created through the reference tokenizer at 32, 64, 128, 256, 384, 512, 768, and
 1024 tokens. No LLM is used to generate any probe.
 
+TEI rejects empty and whitespace-only strings. Those probes remain part of the
+built-in corpus but are capability-filtered for TEI comparisons and listed under
+`skipped_probes` in the report rather than causing an execution failure.
+
 The comparison has four layers:
 
 1. Structural checks validate counts, dimensions, finite values, zero vectors,
@@ -137,10 +141,11 @@ TEI_MINILM_URL=http://localhost:8083 \
 pytest -m integration -vv
 ```
 
-No live TEI endpoint was available in the repository build environment, so no
-real-model result is claimed here. The integration test records actual behavior
-and fails instead of manufacturing a discrepancy. The unit suite then introduces
-each configuration difference deliberately and verifies that it is caught.
+The three models were also run against TEI 1.9.3 on Apple Metal on August 19,
+2026. All baseline configurations passed. A real MiniLM negative control with
+TEI pooling deliberately changed from `mean` to `cls` failed and was diagnosed
+as a known pooling mismatch. See [the experiment report](reports/README.md) and
+the machine-readable JSON files in `reports/`.
 
 ## Scope and interpretation
 

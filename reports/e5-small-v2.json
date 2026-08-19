@@ -1,0 +1,406 @@
+{
+  "batch_consistency": {
+    "candidate": {
+      "comparisons": [
+        {
+          "batch_a": 1,
+          "batch_b": 8,
+          "mean_cosine": 0.9999989524211632,
+          "minimum_cosine": 0.9999915790903339,
+          "passed": true
+        },
+        {
+          "batch_a": 1,
+          "batch_b": 32,
+          "mean_cosine": 0.9999988529566003,
+          "minimum_cosine": 0.9999915790903339,
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    "reference": {
+      "comparisons": [
+        {
+          "batch_a": 1,
+          "batch_b": 8,
+          "mean_cosine": 0.9999999999993604,
+          "minimum_cosine": 0.9999999999977714,
+          "passed": true
+        },
+        {
+          "batch_a": 1,
+          "batch_b": 32,
+          "mean_cosine": 0.9999999999992584,
+          "minimum_cosine": 0.99999999999756,
+          "passed": true
+        }
+      ],
+      "passed": true
+    }
+  },
+  "candidate": {
+    "dtype": "float16",
+    "model_id": "intfloat/e5-small-v2",
+    "pooling": "mean",
+    "runtime": "TEI",
+    "server_metadata": {
+      "auto_truncate": true,
+      "docker_label": null,
+      "max_batch_requests": null,
+      "max_batch_tokens": 16384,
+      "max_client_batch_size": 32,
+      "max_concurrent_requests": 512,
+      "max_input_length": 512,
+      "model_dtype": "float16",
+      "model_id": "intfloat/e5-small-v2",
+      "model_sha": null,
+      "model_type": {
+        "embedding": {
+          "pooling": "mean"
+        }
+      },
+      "served_model_name": "intfloat/e5-small-v2",
+      "sha": null,
+      "tokenization_workers": 9,
+      "version": "1.9.3"
+    },
+    "tokenizer_max_length": 512,
+    "url": "http://127.0.0.1:8080"
+  },
+  "configuration": {
+    "batch_sizes": [
+      1,
+      8,
+      32
+    ],
+    "length_analysis_enabled": true,
+    "lengths": [
+      32,
+      64,
+      128,
+      256,
+      384,
+      512,
+      768,
+      1024
+    ]
+  },
+  "diagnostics": [
+    {
+      "code": "dtype_difference",
+      "message": "Runtime dtypes differ (float32 vs float16); small numerical differences may be expected."
+    }
+  ],
+  "geometry": {
+    "maximum_difference": 0.0008359783188899295,
+    "mean_absolute_difference": 0.0001678794889652019,
+    "pairs_compared": 4656,
+    "pearson": 0.9999956630092506,
+    "spearman": 0.9999890103889418
+  },
+  "length_analysis": {
+    "minimal_reproducer": null,
+    "passed": true,
+    "points": [
+      {
+        "cosine": 0.9999962272925854,
+        "passed": true,
+        "tokens": 32
+      },
+      {
+        "cosine": 0.9999983005275457,
+        "passed": true,
+        "tokens": 64
+      },
+      {
+        "cosine": 0.9999983677306665,
+        "passed": true,
+        "tokens": 128
+      },
+      {
+        "cosine": 0.9999984763993589,
+        "passed": true,
+        "tokens": 256
+      },
+      {
+        "cosine": 0.9999987502243817,
+        "passed": true,
+        "tokens": 384
+      },
+      {
+        "cosine": 0.9999987935698008,
+        "passed": true,
+        "tokens": 512
+      },
+      {
+        "cosine": 0.9999987935698008,
+        "passed": true,
+        "tokens": 768
+      },
+      {
+        "cosine": 0.9999987935698008,
+        "passed": true,
+        "tokens": 1024
+      }
+    ],
+    "threshold": 0.99
+  },
+  "metadata_compatibility": {
+    "candidate_dtype": "float16",
+    "candidate_model_id": "intfloat/e5-small-v2",
+    "candidate_pooling": "mean",
+    "candidate_revision": null,
+    "dtype_match": false,
+    "model_id_match": true,
+    "passed": true,
+    "pooling_match": true,
+    "reference_dtype": "float32",
+    "reference_model_id": "intfloat/e5-small-v2",
+    "reference_pooling": "mean",
+    "reference_revision": "ffb93f3bd4047442299a41ebb6fa998a38507c52",
+    "revision_match": null
+  },
+  "model": "intfloat/e5-small-v2",
+  "neighbors": {
+    "most_changed": [
+      {
+        "id": "p019",
+        "text": "def fib(n):\n    return n if n < 2 else fib(n-1) + fib(n-2)",
+        "top_10_overlap": 0.9
+      },
+      {
+        "id": "p000",
+        "text": "Hello.",
+        "top_10_overlap": 1.0
+      },
+      {
+        "id": "p001",
+        "text": "A",
+        "top_10_overlap": 1.0
+      },
+      {
+        "id": "p002",
+        "text": "the quick brown fox",
+        "top_10_overlap": 1.0
+      },
+      {
+        "id": "p006",
+        "text": "A dog runs through a grassy field.",
+        "top_10_overlap": 1.0
+      },
+      {
+        "id": "p007",
+        "text": "A canine is sprinting across the lawn.",
+        "top_10_overlap": 1.0
+      },
+      {
+        "id": "p008",
+        "text": "How do I reset my password?",
+        "top_10_overlap": 1.0
+      },
+      {
+        "id": "p009",
+        "text": "Steps for changing an account password.",
+        "top_10_overlap": 1.0
+      },
+      {
+        "id": "p010",
+        "text": "The telescope observed a distant galaxy.",
+        "top_10_overlap": 1.0
+      },
+      {
+        "id": "p011",
+        "text": "Sourdough bread needs a fermented starter.",
+        "top_10_overlap": 1.0
+      }
+    ],
+    "top_10_overlap": 0.9989690721649485,
+    "top_1_overlap": 0.9690721649484536,
+    "top_5_overlap": 0.9979381443298969
+  },
+  "passed": true,
+  "prefix_analysis": {
+    "cross_variant_improvement": -0.017477431425626633,
+    "possible_mismatch": false,
+    "prefix": "query: ",
+    "scores": {
+      "prefixed_to_prefixed": 0.9999965553240758,
+      "raw_to_raw": 0.9999958198198898,
+      "reference_prefixed_to_candidate_raw": 0.9825183883942632,
+      "reference_raw_to_candidate_prefixed": 0.9824946819347516
+    }
+  },
+  "probe_count": 97,
+  "probe_fingerprint": "sha256:168cfbb85047d9c5e06a5fc7c826eb38868877adec9a18291b00a66a7288d197",
+  "reference": {
+    "device": "cpu",
+    "dtype": "float32",
+    "embedding_dimension": 384,
+    "model_id": "intfloat/e5-small-v2",
+    "normalization_module_present": true,
+    "normalization_setting": "model_default",
+    "pooling": "mean",
+    "resolved_revision": "ffb93f3bd4047442299a41ebb6fa998a38507c52",
+    "runtime": "SentenceTransformers",
+    "sentence_transformers_version": "6.0.0",
+    "tokenizer_max_length": 512,
+    "torch_version": "2.13.0",
+    "transformers_version": "5.15.0"
+  },
+  "requested_probe_count": 100,
+  "schema_version": 1,
+  "skipped_probes": [
+    {
+      "category": "empty",
+      "id": "p003",
+      "reason": "empty input unsupported by a runtime"
+    },
+    {
+      "category": "empty",
+      "id": "p004",
+      "reason": "empty input unsupported by a runtime"
+    },
+    {
+      "category": "empty",
+      "id": "p005",
+      "reason": "empty input unsupported by a runtime"
+    }
+  ],
+  "structural": {
+    "candidate": {
+      "all_finite": true,
+      "count": 97,
+      "dimension": 384,
+      "inf_count": 0,
+      "nan_count": 0,
+      "norms": {
+        "max": 1.0000000563356413,
+        "mean": 0.9999999957833003,
+        "median": 0.9999999970518844,
+        "min": 0.9999999385047061,
+        "p05": 0.9999999459303731,
+        "p95": 1.000000041409466,
+        "std": 2.869693699735758e-08
+      },
+      "shape": [
+        97,
+        384
+      ],
+      "zero_vectors": 0
+    },
+    "finite_vectors": true,
+    "norm_compatible": true,
+    "norm_distribution_relative_difference": {
+      "median": 1.3360866607180279e-08,
+      "p05": 1.705311024885541e-08,
+      "p95": 4.8618428014108276e-08
+    },
+    "norm_max_relative_difference": 4.8618428014108276e-08,
+    "norm_relative_difference": 1.5453097738761855e-08,
+    "reference": {
+      "all_finite": true,
+      "count": 97,
+      "dimension": 384,
+      "inf_count": 0,
+      "nan_count": 0,
+      "norms": {
+        "max": 1.0000001458212928,
+        "mean": 1.0000000112363983,
+        "median": 1.000000010412751,
+        "min": 0.9999998811981358,
+        "p05": 0.9999999288772641,
+        "p95": 1.0000000900278985,
+        "std": 4.821333912882654e-08
+      },
+      "shape": [
+        97,
+        384
+      ],
+      "zero_vectors": 0
+    },
+    "same_dimension": true,
+    "same_output_count": true
+  },
+  "thresholds": {
+    "batch_min": 0.999,
+    "geometry_mae": 0.01,
+    "geometry_spearman": 0.995,
+    "norm_relative_difference": 0.05,
+    "prefix_improvement": 0.02,
+    "top10_overlap": 0.95,
+    "top1_agreement": 0.95,
+    "top5_overlap": 0.95,
+    "vector_mean": 0.999,
+    "vector_min": 0.99
+  },
+  "vector": {
+    "mean": 0.9999966231873232,
+    "median": 0.999996787909206,
+    "minimum": 0.9999929256361452,
+    "p01": 0.999993226608229,
+    "p05": 0.9999942696223267,
+    "worst": [
+      {
+        "category": "generated",
+        "cosine": 0.9999929256361452,
+        "id": "p096",
+        "text": "This document explains economics for a reader with no prior experience."
+      },
+      {
+        "category": "short",
+        "cosine": 0.9999932391487325,
+        "id": "p002",
+        "text": "the quick brown fox"
+      },
+      {
+        "category": "generated",
+        "cosine": 0.9999932655333387,
+        "id": "p042",
+        "text": "This document explains astronomy for a reader with no prior experience."
+      },
+      {
+        "category": "generated",
+        "cosine": 0.9999941254650616,
+        "id": "p054",
+        "text": "This document explains distributed systems for a reader with no prior experience."
+      },
+      {
+        "category": "generated",
+        "cosine": 0.9999942580346597,
+        "id": "p052",
+        "text": "A concise introduction to distributed systems, including practical examples and common terminology."
+      },
+      {
+        "category": "query",
+        "cosine": 0.9999942725192434,
+        "id": "p013",
+        "text": "weather in Montr\u00e9al tomorrow"
+      },
+      {
+        "category": "generated",
+        "cosine": 0.9999943120905571,
+        "id": "p072",
+        "text": "This document explains public transit for a reader with no prior experience."
+      },
+      {
+        "category": "generated",
+        "cosine": 0.9999943630384813,
+        "id": "p090",
+        "text": "This document explains woodworking for a reader with no prior experience."
+      },
+      {
+        "category": "document",
+        "cosine": 0.9999943932237421,
+        "id": "p016",
+        "text": "To sort a Python mapping, pass its items to sorted with a key function."
+      },
+      {
+        "category": "generated",
+        "cosine": 0.9999944813547357,
+        "id": "p049",
+        "text": "Recent research discusses tradeoffs, measurements, and reproducibility in baking."
+      }
+    ]
+  }
+}

@@ -31,6 +31,16 @@ def test_probe_corpus_is_deterministic_and_has_100_items():
     assert len({probe.id for probe in built_in_probes()}) == 100
 
 
+def test_empty_probes_are_recorded_and_skipped_when_unsupported():
+    candidate = FakeBackend()
+    candidate.supports_empty_inputs = False
+    report = run(candidate=candidate, probes=built_in_probes()[:8], batch_sizes=(1,))
+    assert report["requested_probe_count"] == 8
+    assert report["probe_count"] == 5
+    assert len(report["skipped_probes"]) == 3
+    assert report["passed"]
+
+
 def test_exact_equivalent_embeddings_pass():
     report = run()
     assert report["passed"]
@@ -133,3 +143,11 @@ def test_dtype_difference_is_observational_not_an_automatic_failure():
     report = run(reference=reference, candidate=candidate)
     assert report["passed"]
     assert "dtype_difference" in codes(report)
+
+
+def test_known_pooling_mismatch_is_diagnosed_and_fails():
+    reference = FakeBackend(metadata={"pooling": "mean"})
+    candidate = FakeBackend(metadata={"pooling": "cls"})
+    report = run(reference=reference, candidate=candidate)
+    assert not report["passed"]
+    assert "pooling_mismatch" in codes(report)

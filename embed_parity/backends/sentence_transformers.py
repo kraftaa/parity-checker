@@ -59,6 +59,29 @@ class SentenceTransformersBackend:
         commit_hash = getattr(config, "_commit_hash", None)
         if commit_hash:
             revision = commit_hash
+        pooling_modes: list[str] = []
+        for module in self.model.modules():
+            if module.__class__.__name__ != "Pooling":
+                continue
+            configured_mode = getattr(module, "pooling_mode", None)
+            if isinstance(configured_mode, str) and configured_mode:
+                pooling_modes.append(configured_mode)
+                break
+            mode_flags = {
+                "cls": "pooling_mode_cls_token",
+                "mean": "pooling_mode_mean_tokens",
+                "max": "pooling_mode_max_tokens",
+                "last_token": "pooling_mode_lasttoken",
+            }
+            pooling_modes.extend(
+                name for name, attribute in mode_flags.items() if getattr(module, attribute, False)
+            )
+            break
+        dimension_getter = getattr(
+            self.model,
+            "get_embedding_dimension",
+            self.model.get_sentence_embedding_dimension,
+        )
         return {
             "runtime": self.name,
             "model_id": self.model_id,
@@ -66,7 +89,8 @@ class SentenceTransformersBackend:
             **self._versions,
             "device": str(self.model.device),
             "dtype": str(first_parameter.dtype).removeprefix("torch.") if first_parameter is not None else None,
-            "embedding_dimension": self.model.get_sentence_embedding_dimension(),
+            "embedding_dimension": dimension_getter(),
+            "pooling": pooling_modes[0] if len(pooling_modes) == 1 else pooling_modes or None,
             "normalization_setting": self.normalize if self.normalize is not None else "model_default",
             "normalization_module_present": any(
                 module.__class__.__name__ == "Normalize" for module in self.model.modules()

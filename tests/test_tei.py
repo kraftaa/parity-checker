@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import threading
 
 import httpx
 import numpy as np
@@ -101,3 +102,22 @@ def test_tei_wait_until_ready_refreshes_metadata():
     backend = TEIBackend("http://tei.test", client=client)
     backend.wait_until_ready(1)
     assert backend.metadata["model_id"] == "org/model"
+
+
+def test_tei_sends_independent_requests_concurrently():
+    arrived = threading.Barrier(4)
+    request_sizes = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "GET":
+            return httpx.Response(404)
+        payload = json.loads(request.content)
+        request_sizes.append(len(payload["inputs"]))
+        arrived.wait(timeout=2)
+        return httpx.Response(200, json=[[1.0, 2.0, 3.0]])
+
+    client = httpx.Client(transport=httpx.MockTransport(handler), base_url="http://tei.test")
+    backend = TEIBackend("http://tei.test", client=client)
+    vectors = backend.encode_concurrently("same text", 4)
+    assert request_sizes == [1, 1, 1, 1]
+    assert vectors.shape == (4, 3)

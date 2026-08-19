@@ -92,6 +92,40 @@ def test_batch_dependent_candidate_is_diagnosed():
     assert not report["batch_consistency"]["candidate"]["passed"]
 
 
+def test_concurrent_server_batching_passes_when_embeddings_are_stable():
+    report = run(concurrent_requests=4, concurrency_trials=2)
+    server_batch = report["server_batch_consistency"]
+    assert server_batch["passed"]
+    assert server_batch["responses_compared"] == 8
+    assert server_batch["minimum_cosine"] > 0.999999
+
+
+def test_concurrent_server_batching_failure_is_diagnosed():
+    report = run(
+        candidate=FakeBackend(concurrency_sensitive=True),
+        concurrent_requests=4,
+        concurrency_trials=2,
+    )
+    server_batch = report["server_batch_consistency"]
+    assert not report["passed"]
+    assert not server_batch["passed"]
+    assert server_batch["divergent_responses"] == 4
+    assert "server_batch_sensitive_candidate" in codes(report)
+
+
+def test_backend_without_concurrency_capability_is_skipped_cleanly():
+    class EncodeOnlyBackend:
+        name = "encode-only"
+        metadata = {"runtime": "encode-only"}
+
+        def encode(self, texts, batch_size):
+            return FakeBackend().encode(texts, batch_size)
+
+    report = run(candidate=EncodeOnlyBackend(), concurrent_requests=4)
+    assert report["server_batch_consistency"] is None
+    assert report["passed"]
+
+
 def test_query_prefix_difference_is_diagnosed():
     queries = [
         Probe(f"q{i}", "query", text)

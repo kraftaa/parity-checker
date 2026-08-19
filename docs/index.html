@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#07111f" />
+    <title>embed-parity — Same model. Different runtime.</title>
+    <meta
+      name="description"
+      content="Catch silent embedding drift between SentenceTransformers and TEI—including failures that appear only under concurrent production traffic."
+    />
+    <meta property="og:title" content="embed-parity" />
+    <meta property="og:description" content="Same model. Different runtime. Prove the vectors still agree." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://kraftaa.github.io/parity-checker/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="embed-parity" />
+    <meta name="twitter:description" content="Same model. Different runtime. Prove the vectors still agree." />
+    <meta name="twitter:image" content="https://kraftaa.github.io/parity-checker/og.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="nav shell">
+      <a class="wordmark" href="#top" aria-label="embed-parity home">
+        <span class="mark" aria-hidden="true"></span>embed-parity
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="#lab">Live explainer</a>
+        <a href="#evidence">Evidence</a>
+        <a href="https://github.com/kraftaa/parity-checker">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero shell">
+        <div class="eyebrow"><span></span>Embedding runtime verification</div>
+        <h1>Same model.<br /><em>Different runtime.</em></h1>
+        <p class="lede">
+          Your health check is green. The dimensions match. But does TEI return the same
+          embedding as SentenceTransformers—under real traffic, at real lengths, in real batches?
+        </p>
+        <div class="hero-actions">
+          <div class="install" aria-label="Installation command">
+            <code>pip install embed-parity</code>
+            <button class="copy" data-copy="pip install embed-parity">Copy</button>
+          </div>
+          <a class="text-link" href="https://github.com/kraftaa/parity-checker">View source <span>↗</span></a>
+        </div>
+        <div class="checks" aria-label="A real failure ordinary checks missed">
+          <div><span>Same model</span><strong class="pass">Pass</strong></div>
+          <div><span>Same revision</span><strong class="pass">Pass</strong></div>
+          <div><span>Correct dimension</span><strong class="pass">Pass</strong></div>
+          <div><span>Health endpoint</span><strong class="pass">Pass</strong></div>
+          <div class="failed"><span>Concurrent parity</span><strong>Fail</strong></div>
+        </div>
+      </section>
+
+      <section class="lab-wrap" id="lab">
+        <div class="shell lab-grid">
+          <div class="section-copy">
+            <div class="eyebrow"><span></span>Interactive failure lab</div>
+            <h2>The same text should not care who arrived beside it.</h2>
+            <p>
+              Switch request patterns and runtime builds. These are measured cosine similarities
+              from the pinned Qwen3 reproduction of open TEI issue #882.
+            </p>
+            <div class="runtime-toggle" role="group" aria-label="Runtime build">
+              <button class="active" data-runtime="official">Official TEI 1.9.3</button>
+              <button data-runtime="patched">PR #883 build</button>
+            </div>
+          </div>
+
+          <div class="runtime-card">
+            <div class="mode-tabs" role="tablist" aria-label="Request pattern">
+              <button role="tab" aria-selected="true" data-mode="isolated">Isolated</button>
+              <button role="tab" aria-selected="false" data-mode="list">Client list</button>
+              <button role="tab" aria-selected="false" data-mode="concurrent">Concurrent</button>
+            </div>
+            <div class="request-viz" aria-hidden="true">
+              <div class="request-label">Independent requests</div>
+              <div class="lanes">
+                <div class="lane"><i></i><span>A</span><b></b></div>
+                <div class="lane"><i></i><span>B</span><b></b></div>
+                <div class="lane"><i></i><span>A</span><b></b></div>
+                <div class="lane"><i></i><span>B</span><b></b></div>
+              </div>
+              <div class="runtime-node">TEI</div>
+            </div>
+            <div class="metric-row">
+              <div>
+                <span>Minimum cosine</span>
+                <strong id="cosine">1.0000</strong>
+              </div>
+              <div>
+                <span>Result</span>
+                <strong class="result-pass" id="result">Stable</strong>
+              </div>
+            </div>
+            <p class="result-note" id="result-note">
+              One request at a time produces the isolated reference embedding.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="mask-section shell">
+        <div class="mask-card">
+          <div class="mask-copy">
+            <div class="eyebrow"><span></span>What actually broke</div>
+            <h2>“No padding” accidentally became “no causal mask.”</h2>
+            <p>
+              Padding only fills shorter rows. A causal mask is separate: it controls which token
+              positions may look ahead. Equal-length requests need no padding, but Qwen3 still
+              needs its causal mask.
+            </p>
+            <div class="length-toggle" role="group" aria-label="Sequence lengths">
+              <button class="active" data-length="equal">Equal lengths</button>
+              <button data-length="mixed">Mixed lengths</button>
+            </div>
+          </div>
+          <div class="token-demo">
+            <div class="token-row row-a">
+              <span>database</span><span>indexes</span><span>speed</span><span>queries</span>
+            </div>
+            <div class="token-row row-b">
+              <span>ocean</span><span>currents</span><span>shape</span><span>weather</span>
+            </div>
+            <div class="mask-status">
+              <div><span>Padding mask</span><strong id="padding-state">Not needed</strong></div>
+              <div><span>Causal mask</span><strong class="danger" id="causal-state">Skipped by bug</strong></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="evidence shell" id="evidence">
+        <div class="section-copy compact">
+          <div class="eyebrow"><span></span>Reproduced, not simulated</div>
+          <h2>A current upstream regression ordinary checks miss.</h2>
+          <p>
+            Pinned model revision. Pinned container digests. Identical probes. The proposed patch
+            changes only the broken condition.
+          </p>
+        </div>
+        <div class="evidence-table" role="table" aria-label="TEI issue 882 reproduction results">
+          <div class="table-row table-head" role="row">
+            <span role="columnheader">Request path</span>
+            <span role="columnheader">Official 1.9.3</span>
+            <span role="columnheader">PR #883 build</span>
+          </div>
+          <div class="table-row" role="row">
+            <span role="cell">Client list batch</span><strong role="cell">1.0000</strong><strong role="cell">1.0000</strong>
+          </div>
+          <div class="table-row critical" role="row">
+            <span role="cell">Concurrent router batch</span><strong role="cell">0.1586</strong><strong role="cell">1.0000</strong>
+          </div>
+          <div class="table-row" role="row">
+            <span role="cell">Unequal-length control</span><strong role="cell">1.0000</strong><strong role="cell">1.0000</strong>
+          </div>
+        </div>
+        <div class="evidence-links">
+          <a href="https://github.com/huggingface/text-embeddings-inference/issues/882">Open TEI issue #882 ↗</a>
+          <a href="https://github.com/huggingface/text-embeddings-inference/pull/883">Proposed fix PR #883 ↗</a>
+          <a href="https://github.com/kraftaa/parity-checker/tree/main/experiments/current/tei-882">Reproduction artifacts ↗</a>
+        </div>
+      </section>
+
+      <section class="cli-section">
+        <div class="shell cli-grid">
+          <div>
+            <div class="eyebrow"><span></span>One command, layered evidence</div>
+            <h2>Check the embedding behavior you actually deploy.</h2>
+          </div>
+          <div class="terminal">
+            <div class="terminal-bar"><i></i><i></i><i></i><span>terminal</span></div>
+            <pre><code><span class="prompt">$</span> embed-parity compare \
+  --model Qwen/Qwen3-Embedding-0.6B \
+  --revision 97b0c614... \
+  --tei http://localhost:8080 \
+  --concurrent-requests 4 \
+  --concurrency-trials 3
+
+Concurrent server batching
+  responses compared               12
+  minimum cosine                   <mark>0.266183</mark>
+  divergent responses              6
+                                     <mark>FAIL</mark></code></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="shell">
+      <div class="wordmark"><span class="mark" aria-hidden="true"></span>embed-parity</div>
+      <p>Operational evidence, not universal proof.</p>
+      <div><a href="https://pypi.org/project/embed-parity/">PyPI</a><a href="https://github.com/kraftaa/parity-checker">GitHub</a></div>
+    </footer>
+  </body>
+</html>

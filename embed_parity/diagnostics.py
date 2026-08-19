@@ -118,6 +118,17 @@ def diagnose(report: dict[str, Any]) -> list[dict[str, str]]:
                         "message": f"Possible batch-dependent inference behavior in {label}.",
                     }
                 )
+    server_batch = report.get("server_batch_consistency")
+    if server_batch and not server_batch["passed"]:
+        findings.append(
+            {
+                "code": "server_batch_sensitive_candidate",
+                "message": (
+                    "Possible server-side batching or attention-mask mismatch: the same input "
+                    "changed under concurrent independent TEI requests."
+                ),
+            }
+        )
     if (
         vector
         and vector["mean"] < report["thresholds"]["vector_mean"]

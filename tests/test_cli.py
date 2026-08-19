@@ -22,11 +22,31 @@ def test_parser_accepts_custom_probe_and_length_options():
             "64,128,257",
             "--timeout",
             "30",
+            "--concurrent-requests",
+            "6",
+            "--concurrency-trials",
+            "2",
         ]
     )
     assert args.lengths == (64, 128, 257)
     assert args.probe_file == "probes.jsonl"
     assert args.timeout == 30
+    assert args.concurrent_requests == 6
+    assert args.concurrency_trials == 2
+
+
+def test_parser_can_disable_concurrency_check():
+    args = build_parser().parse_args(
+        [
+            "compare",
+            "--model",
+            "org/model",
+            "--tei",
+            "http://localhost:8080",
+            "--no-concurrency-check",
+        ]
+    )
+    assert args.concurrent_requests == 0
 
 
 def test_parser_rejects_unsorted_lengths():

@@ -1,13 +1,28 @@
 # embed-parity
 
-`embed-parity` answers one deliberately narrow question: does a Hugging Face Text
-Embeddings Inference (TEI) deployment reproduce the embedding behavior of the
-same model through SentenceTransformers?
+You deploy the same embedding model through Hugging Face Text Embeddings
+Inference (TEI). The model name, revision, dimensions, and health endpoint all
+look right. Are you actually serving the same embeddings?
 
-It checks vector direction and norms, pairwise geometry, nearest neighbors,
-batch consistency, model-aware query/document prefixes, and behavior at controlled token
-lengths. When a length failure is found after shorter inputs pass, it performs a
-binary search for the shortest failing token prefix.
+`embed-parity` compares TEI with SentenceTransformers across vector direction
+and norms, pairwise geometry, nearest neighbors, controlled token lengths,
+client-list batches, and independent concurrent requests that TEI may coalesce
+into backend batches.
+
+```text
+Same model                  PASS
+Same revision               PASS
+Correct dimension           PASS
+Health endpoint             PASS
+Concurrent embedding parity FAIL
+```
+
+That final condition is real: `embed-parity` reproduced open TEI issue #882 on
+official TEI 1.9.3. The same Qwen3 input changed from cosine `1.0000` in isolated
+and client-list requests to `0.1586` under concurrent router batching. The
+proposed PR #883 build restored `1.0000`.
+
+[Explore the interactive explanation](https://kraftaa.github.io/parity-checker/).
 
 ## Installation
 
@@ -47,6 +62,8 @@ embed-parity compare \
   --model BAAI/bge-small-en-v1.5 \
   --tei http://localhost:8080 \
   --batch-sizes 1,8,32 \
+  --concurrent-requests 4 \
+  --concurrency-trials 3 \
   --json report.json
 ```
 
@@ -73,6 +90,13 @@ Use `--skip-length-analysis` for a fast corpus-only check. Reports include the
 selected batch sizes and lengths plus a SHA-256 fingerprint of the exact corpus.
 If `--json` is set, exit-code-2 execution failures also produce a structured JSON
 error report.
+
+By default the CLI sends four independent requests simultaneously for three
+trials. This exercises TEI's router-coalesced server batching, which is different
+from putting several inputs in one client request. Use `--no-concurrency-check`
+for rate-limited endpoints, or change `--concurrent-requests` and
+`--concurrency-trials` explicitly. The report records both batch mechanisms
+separately.
 
 ### TEI transport controls
 
@@ -123,8 +147,11 @@ The comparison has four layers:
 4. Neighbor checks measure top-1 agreement and average top-5/top-10 overlap and
    identify the most changed neighborhoods.
 
-Both runtimes are rerun at every requested batch size. For E5 and English BGE
-models, query probes test model-family-recommended prefixes; E5 document probes
+Both runtimes are rerun at every requested client-list batch size. The TEI
+candidate also receives repeated independent single-input requests concurrently;
+the same text is used in every request so equal token length is guaranteed
+without guessing the server tokenizer. For E5 and English BGE models, query
+probes test model-family-recommended prefixes; E5 document probes
 also test `passage: `. This is a diagnostic observation only: the tool says a
 prefix *may* explain a difference; it does not claim an unobserved server
 configuration as fact.
@@ -151,7 +178,25 @@ large perturbation, a 256-token truncation boundary, batch dependence, hidden
 query prefix, NaN output, an incompatible embedding space, malformed/ragged TEI
 responses, wrong response counts, metadata conflicts, and JSONL validation.
 
-## Real-model experiment
+## Real-world TEI regression
+
+The pinned experiment in
+[`experiments/current/tei-882`](experiments/current/tei-882) reproduces open
+[TEI issue #882](https://github.com/huggingface/text-embeddings-inference/issues/882)
+with `Qwen/Qwen3-Embedding-0.6B`:
+
+| Request path | Official TEI 1.9.3 | Proposed PR #883 build |
+|---|---:|---:|
+| Client list batch | 1.0000 | 1.0000 |
+| Unequal-length control | 1.0000 | 1.0000 |
+| Concurrent router batch | **0.1586** | 1.0000 |
+
+The official server stayed healthy and returned the expected dimensions. The
+failure appears only when independent equal-length requests are coalesced. The
+patched image is community-built evidence for the proposed fix, not an official
+Hugging Face release or production recommendation.
+
+## Baseline experiments
 
 The repository includes an opt-in three-model integration test for:
 
@@ -176,7 +221,8 @@ as a known pooling mismatch. See [the experiment report](reports/README.md) and
 the machine-readable JSON files in `reports/`.
 
 The `live TEI parity` GitHub Actions workflow runs pinned MiniLM weekly and on
-manual dispatch. Tagging `v0.2.0` builds a GitHub release and publishes to PyPI
+manual dispatch, including the concurrent server-batching check. Tagging `v0.3.0`
+builds a GitHub release and publishes to PyPI
 through trusted publishing after the repository's `pypi` environment and PyPI
 trusted publisher are configured.
 

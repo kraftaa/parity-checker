@@ -18,6 +18,22 @@ def test_human_and_json_reports(tmp_path):
     path = tmp_path / "report.json"
     write_json(report, path)
     parsed = json.loads(path.read_text())
-    assert parsed["schema_version"] == 2
-    assert parsed["tool_version"] == "0.2.0"
+    assert parsed["schema_version"] == 3
+    assert parsed["tool_version"] == "0.3.0"
     assert parsed["passed"] is True
+
+
+def test_human_report_renders_concurrent_server_batching():
+    report = compare_backends(
+        "model",
+        FakeBackend(),
+        FakeBackend(concurrency_sensitive=True),
+        built_in_probes()[:12],
+        batch_sizes=(1,),
+        concurrent_requests=4,
+        concurrency_trials=2,
+    )
+    text = render_text(report)
+    assert "Concurrent server batching" in text
+    assert "divergent responses              4" in text
+    assert "Possible server-side batching" in text

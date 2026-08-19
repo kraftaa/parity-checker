@@ -139,6 +139,22 @@ def render_text(report: dict[str, Any]) -> str:
                     f"    {batch_label}: mean {_fmt(item['mean_cosine'])}  "
                     f"{_status(item['passed'])}"
                 )
+    server_batch = report.get("server_batch_consistency")
+    if server_batch:
+        lines.extend(
+            [
+                "",
+                "Concurrent server batching",
+                f"  probe                            {server_batch['probe_id']}",
+                f"  concurrency                      {server_batch['concurrent_requests']}",
+                f"  trials                           {server_batch['trials']}",
+                f"  responses compared               {server_batch['responses_compared']}",
+                f"  mean cosine                      {_fmt(server_batch['mean_cosine'])}",
+                f"  minimum cosine                   {_fmt(server_batch['minimum_cosine'])}",
+                f"  divergent responses              {server_batch['divergent_responses']}",
+                f"                                   {_status(server_batch['passed'])}",
+            ]
+        )
     length = report.get("length_analysis")
     if length:
         lines.extend(["", "Input length parity"])
@@ -205,7 +221,7 @@ def write_error_json(
     path: str | Path, *, model: str | None, tei: str | None, error: BaseException
 ) -> None:
     payload = {
-        "schema_version": 2,
+        "schema_version": 3,
         "tool_version": __version__,
         "status": "execution_error",
         "passed": False,

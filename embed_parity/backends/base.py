@@ -15,3 +15,9 @@ class EmbeddingBackend(Protocol):
     def metadata(self) -> dict[str, Any]: ...
 
     def encode(self, texts: Sequence[str], batch_size: int) -> np.ndarray: ...
+
+
+class ConcurrentEmbeddingBackend(Protocol):
+    """Optional capability for production-style independent request checks."""
+
+    def encode_concurrently(self, text: str, count: int) -> np.ndarray: ...

@@ -48,5 +48,7 @@ def test_live_runtime_parity(model_id: str, revision: str, url_variable: str):
         built_in_probes(),
         batch_sizes=(1, 8, 32),
         length_factory=reference.text_at_token_length,
+        concurrent_requests=4,
+        concurrency_trials=3,
     )
     assert report["passed"], report["diagnostics"]

@@ -1,0 +1,31 @@
+{
+  "probe_id": "tei-882",
+  "text": "Database indexes make repeated queries faster.",
+  "concurrent_requests": 4,
+  "trials": 3,
+  "responses_compared": 12,
+  "mean_cosine": 0.6330913426075565,
+  "minimum_cosine": 0.266182685215113,
+  "divergent_responses": 6,
+  "passed": false,
+  "trial_results": [
+    {
+      "trial": 1,
+      "cosines": [1.0, 0.266182685215113, 0.266182685215113, 1.0],
+      "minimum_cosine": 0.266182685215113,
+      "passed": false
+    },
+    {
+      "trial": 2,
+      "cosines": [0.266182685215113, 1.0, 0.266182685215113, 1.0],
+      "minimum_cosine": 0.266182685215113,
+      "passed": false
+    },
+    {
+      "trial": 3,
+      "cosines": [1.0, 0.266182685215113, 0.266182685215113, 1.0],
+      "minimum_cosine": 0.266182685215113,
+      "passed": false
+    }
+  ]
+}

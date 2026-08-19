@@ -1,0 +1,24 @@
+{
+  "client_list_batch_vs_single": {
+    "a": 1.0,
+    "b": 1.0
+  },
+  "concurrent_router_batch_vs_single": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+  ],
+  "model": "Qwen/Qwen3-Embedding-0.6B",
+  "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+  "tei": "http://127.0.0.1:8383",
+  "token_counts": {
+    "Database indexes make repeated queries faster.": 8,
+    "Ocean currents shape regional weather patterns.": 8,
+    "short text": 3
+  },
+  "unequal_length_batch_vs_single": {
+    "a": 1.0,
+    "control": 1.0
+  }
+}

@@ -54,6 +54,26 @@ def build_parser() -> argparse.ArgumentParser:
     norm.add_argument("--normalize", action="store_true", help="normalize reference embeddings")
     norm.add_argument("--no-normalize", action="store_true", help="disable reference normalization")
     compare.add_argument("--batch-sizes", type=_batch_sizes, default=(1, 8, 32))
+    concurrency = compare.add_mutually_exclusive_group()
+    concurrency.add_argument(
+        "--concurrent-requests",
+        type=int,
+        default=4,
+        help="independent simultaneous TEI requests used to test router batching",
+    )
+    concurrency.add_argument(
+        "--no-concurrency-check",
+        dest="concurrent_requests",
+        action="store_const",
+        const=0,
+        help="disable the production-style TEI router batching check",
+    )
+    compare.add_argument(
+        "--concurrency-trials",
+        type=int,
+        default=3,
+        help="number of concurrent-request trials (default: 3)",
+    )
     compare.add_argument(
         "--lengths", type=_lengths, default=DEFAULT_LENGTHS, help="comma-separated token lengths"
     )
@@ -112,6 +132,10 @@ def run_compare(args: argparse.Namespace) -> int:
         raise ValueError("timeouts must be positive")
     if args.tei_retries < 0 or args.tei_retry_backoff < 0:
         raise ValueError("TEI retries and retry backoff cannot be negative")
+    if args.concurrent_requests not in (0,) and args.concurrent_requests < 2:
+        raise ValueError("concurrent requests must be zero or at least two")
+    if args.concurrency_trials < 1:
+        raise ValueError("concurrency trials must be positive")
     thresholds = Thresholds(
         vector_mean=args.vector_mean,
         vector_min=args.vector_min,
@@ -152,6 +176,8 @@ def run_compare(args: argparse.Namespace) -> int:
             thresholds=thresholds,
             length_factory=None if args.skip_length_analysis else reference.text_at_token_length,
             lengths=args.lengths,
+            concurrent_requests=args.concurrent_requests,
+            concurrency_trials=args.concurrency_trials,
         )
         print(render_text(report), end="")
         if args.json:

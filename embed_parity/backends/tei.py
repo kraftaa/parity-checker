@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import time
 from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 from typing import Any
 
 import httpx
@@ -152,6 +154,43 @@ class TEIBackend:
             return np.asarray(rows, dtype=np.float64)
         except (TypeError, ValueError) as exc:
             raise RuntimeError("TEI returned malformed or ragged embeddings") from exc
+
+    def encode_concurrently(self, text: str, count: int) -> np.ndarray:
+        """Send independent one-input requests at the same time.
+
+        This exercises TEI router coalescing, which is distinct from sending one
+        client request whose ``inputs`` field already contains a list.
+        """
+        if count < 2:
+            raise ValueError("concurrent request count must be at least two")
+        start = Barrier(count)
+
+        def request_one(_: int) -> list[float]:
+            start.wait()
+            response = self._embed_request([text])
+            if not response.is_success:
+                raise RuntimeError(
+                    f"TEI concurrent /embed failed with HTTP {response.status_code} "
+                    f"for {text[:80]!r}: {response.text[:500]}"
+                )
+            payload = response.json()
+            if not isinstance(payload, list):
+                raise RuntimeError("TEI concurrent /embed returned a non-list response")
+            if payload and isinstance(payload[0], (int, float)):
+                payload = [payload]
+            if len(payload) != 1:
+                raise RuntimeError("TEI concurrent /embed returned an invalid output count")
+            return payload[0]
+
+        with ThreadPoolExecutor(max_workers=count) as executor:
+            rows = list(executor.map(request_one, range(count)))
+        try:
+            vectors: np.ndarray = np.asarray(rows, dtype=np.float64)
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError("TEI concurrent /embed returned malformed embeddings") from exc
+        if vectors.ndim != 2:
+            raise RuntimeError("TEI concurrent /embed returned malformed embeddings")
+        return vectors
 
     def close(self) -> None:
         if self._owns_client:

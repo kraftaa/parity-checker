@@ -4,12 +4,12 @@ import hashlib
 import json
 from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 
 from . import __version__
-from .backends.base import EmbeddingBackend
+from .backends.base import ConcurrentEmbeddingBackend, EmbeddingBackend
 from .probes import Probe, recommended_document_prefix, recommended_query_prefix
 
 
@@ -290,6 +290,64 @@ def _batch_consistency(
     return {"passed": passed, "comparisons": comparisons}
 
 
+def _server_batch_consistency(
+    backend: EmbeddingBackend,
+    text: str,
+    probe_id: str,
+    concurrent_requests: int,
+    trials: int,
+    threshold: float,
+) -> dict[str, Any] | None:
+    method = getattr(backend, "encode_concurrently", None)
+    if not callable(method):
+        return None
+    concurrent_backend = cast(ConcurrentEmbeddingBackend, backend)
+    isolated = np.asarray(backend.encode([text], 1), dtype=np.float64)
+    if isolated.ndim != 2 or isolated.shape[0] != 1 or not np.isfinite(isolated).all():
+        raise RuntimeError("isolated server-batching probe returned an invalid embedding")
+    all_cosines: list[float] = []
+    trial_results = []
+    for trial in range(1, trials + 1):
+        concurrent = np.asarray(
+            concurrent_backend.encode_concurrently(text, concurrent_requests), dtype=np.float64
+        )
+        compatible = (
+            concurrent.shape == (concurrent_requests, isolated.shape[1])
+            and np.isfinite(concurrent).all()
+        )
+        cosines = (
+            _cosine_rows(np.repeat(isolated, concurrent_requests, axis=0), concurrent)
+            if compatible
+            else np.full(concurrent_requests, np.nan)
+        )
+        values = [float(value) for value in cosines]
+        all_cosines.extend(values)
+        trial_results.append(
+            {
+                "trial": trial,
+                "cosines": values,
+                "minimum_cosine": _safe_stats(cosines)["minimum"],
+                "passed": bool(
+                    compatible and np.all(np.isfinite(cosines)) and np.all(cosines >= threshold)
+                ),
+            }
+        )
+    scores: np.ndarray = np.asarray(all_cosines, dtype=np.float64)
+    divergent = int(np.sum(~np.isfinite(scores) | (scores < threshold)))
+    return {
+        "probe_id": probe_id,
+        "text": text,
+        "concurrent_requests": concurrent_requests,
+        "trials": trials,
+        "responses_compared": len(all_cosines),
+        "mean_cosine": _safe_stats(scores)["mean"],
+        "minimum_cosine": _safe_stats(scores)["minimum"],
+        "divergent_responses": divergent,
+        "passed": divergent == 0,
+        "trial_results": trial_results,
+    }
+
+
 def _prefix_variant_analysis(
     prefix: str | None,
     category: str,
@@ -376,6 +434,8 @@ def compare_backends(
     thresholds: Thresholds = DEFAULT_THRESHOLDS,
     length_factory: Callable[[int], str] | None = None,
     lengths: Sequence[int] = (32, 64, 128, 256, 384, 512, 768, 1024),
+    concurrent_requests: int = 0,
+    concurrency_trials: int = 3,
 ) -> dict[str, Any]:
     requested_probes = list(probes)
     empty_supported = all(
@@ -389,6 +449,10 @@ def compare_backends(
         raise ValueError("batch sizes must contain positive integers")
     if len(set(batch_sizes)) != len(batch_sizes):
         raise ValueError("batch sizes must be unique")
+    if concurrent_requests != 0 and concurrent_requests < 2:
+        raise ValueError("concurrent requests must be zero or at least two")
+    if concurrency_trials < 1:
+        raise ValueError("concurrency trials must be positive")
     if len(probes) < 2:
         raise ValueError("at least two probes are required")
     if length_factory and (
@@ -437,7 +501,7 @@ def compare_backends(
         model_id, reference_metadata, candidate_metadata
     )
     report: dict[str, Any] = {
-        "schema_version": 2,
+        "schema_version": 3,
         "tool_version": __version__,
         "model": model_id,
         "thresholds": asdict(thresholds),
@@ -457,6 +521,8 @@ def compare_backends(
         "probe_fingerprint": _probe_fingerprint(probes),
         "configuration": {
             "batch_sizes": list(batch_sizes),
+            "concurrent_requests": concurrent_requests,
+            "concurrency_trials": concurrency_trials if concurrent_requests else 0,
             "length_analysis_enabled": length_factory is not None,
             "lengths": list(lengths) if length_factory else [],
         },
@@ -465,6 +531,7 @@ def compare_backends(
         "geometry": None,
         "neighbors": None,
         "batch_consistency": None,
+        "server_batch_consistency": None,
         "length_analysis": None,
         "prefix_analysis": None,
         "diagnostics": [],
@@ -481,6 +548,19 @@ def compare_backends(
                 candidate, texts, candidate_vectors, base_batch, batch_sizes, thresholds.batch_min
             ),
         }
+        if concurrent_requests:
+            concurrency_probe = next(
+                (probe for probe in probes if 32 <= len(probe.text) <= 256),
+                next(probe for probe in probes if probe.text.strip()),
+            )
+            report["server_batch_consistency"] = _server_batch_consistency(
+                candidate,
+                concurrency_probe.text,
+                concurrency_probe.id,
+                concurrent_requests,
+                concurrency_trials,
+                thresholds.batch_min,
+            )
         report["prefix_analysis"] = _prefix_analysis(
             model_id, reference, candidate, probes, base_batch, thresholds.prefix_improvement
         )
@@ -504,6 +584,10 @@ def compare_backends(
         and report["neighbors"]["top_10_overlap"] >= thresholds.top10_overlap
         and report["batch_consistency"]["reference"]["passed"]
         and report["batch_consistency"]["candidate"]["passed"]
+        and (
+            report["server_batch_consistency"] is None
+            or report["server_batch_consistency"]["passed"]
+        )
         and (report["length_analysis"] is None or report["length_analysis"]["passed"])
     )
     report["passed"] = metrics_pass

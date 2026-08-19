@@ -30,6 +30,7 @@ class FakeBackend:
         perturb: float = 0.0,
         truncate: int | None = None,
         batch_sensitive: bool = False,
+        concurrency_sensitive: bool = False,
         prefix: str | None = None,
         nan: bool = False,
         salt: str = "",
@@ -41,6 +42,7 @@ class FakeBackend:
         self.perturb = perturb
         self.truncate = truncate
         self.batch_sensitive = batch_sensitive
+        self.concurrency_sensitive = concurrency_sensitive
         self.prefix = prefix
         self.nan = nan
         self.salt = salt
@@ -72,4 +74,12 @@ class FakeBackend:
         result = np.stack(rows)
         if self.nan:
             result[0, 0] = np.nan
+        return result
+
+    def encode_concurrently(self, text: str, count: int) -> np.ndarray:
+        result = self.encode([text] * count, batch_size=1)
+        if self.concurrency_sensitive:
+            result[1::2, ::3] += 1.0
+            if self.normalize:
+                result[1::2] /= np.linalg.norm(result[1::2], axis=1, keepdims=True)
         return result

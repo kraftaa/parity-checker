@@ -28,6 +28,20 @@ proposed PR #883 build restored `1.0000`.
 
 Python 3.10 or newer is required.
 
+On an Apple-silicon Mac, install the complete runtime with Homebrew:
+
+```bash
+brew install kraftaa/tap/embed-parity
+```
+
+On other platforms, install from PyPI:
+
+```bash
+python -m pip install 'embed-parity[sentence-transformers]'
+```
+
+For local development:
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate

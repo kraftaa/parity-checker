@@ -1,11 +1,38 @@
 # embed-parity
 
-You're moving an embedding workload from SentenceTransformers to Hugging Face
-Text Embeddings Inference (TEI). Both return vectors of the expected dimension
-and both servers are healthy. Will your users get the same search results?
+A healthy embedding server can still return severely different embeddings under
+production batching.
 
-Bring representative queries and documents and compare the actual retrieval
-behavior:
+The pinned `Qwen/Qwen3-Embedding-0.6B` reproduction compared
+SentenceTransformers with official TEI 1.9.3:
+
+```text
+Request path                   Minimum cosine
+Normal request                    1.0000  PASS
+Client list batch                 1.0000  PASS
+Concurrent router batch           0.1586  FAIL
+```
+
+Same model. Same revision. Correct dimensions. Healthy endpoint. The failure
+appeared only when TEI coalesced independent equal-length requests. The proposed
+fix restored concurrent parity to `1.0000`.
+
+**embed-parity is a differential testing CLI for catching this class of silent
+failure across runtimes, batching modes, prompts, pooling configurations, and
+production workloads.**
+
+[![embed-parity reproduced TEI concurrent-batching regression](docs/demo.png)](https://kraftaa.github.io/parity-checker/)
+
+The [pinned reproduction](experiments/current/tei-882) includes container
+digests, model revision, raw output, and the proposed-fix comparison. The
+[interactive explanation](https://kraftaa.github.io/parity-checker/) shows why
+client batching passed while concurrent router batching failed.
+
+## Compare a real search workload
+
+When migrating from SentenceTransformers to Hugging Face Text Embeddings
+Inference (TEI), bring representative queries and documents and compare the
+actual retrieval behavior:
 
 ```bash
 embed-parity workload \
@@ -26,11 +53,9 @@ Top-5 overlap        99.4%
 3 queries changed materially.
 ```
 
-The report identifies the affected queries and shows the reference and candidate
-top results side by side. It calls this behavioral change—not a quality
-regression—because workload files do not contain relevance judgments.
-
-[Explore the interactive explanation](https://kraftaa.github.io/parity-checker/).
+The report identifies affected queries and shows reference and candidate results
+side by side. It calls this behavioral change—not a quality regression—because
+workload files do not contain relevance judgments.
 
 ## Installation
 

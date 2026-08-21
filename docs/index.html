@@ -4,19 +4,19 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#07111f" />
-    <title>embed-parity — Same model. Different runtime.</title>
+    <title>embed-parity — A healthy server. Different vectors.</title>
     <meta
       name="description"
       content="Catch silent embedding drift between SentenceTransformers and TEI—including failures that appear only under concurrent production traffic."
     />
     <meta property="og:title" content="embed-parity" />
-    <meta property="og:description" content="Same model. Different runtime. Prove the vectors still agree." />
+    <meta property="og:description" content="Qwen3 passed normal requests and client batching, then fell to 0.1586 cosine under concurrent router batching." />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://kraftaa.github.io/parity-checker/og.png" />
+    <meta property="og:image" content="https://kraftaa.github.io/parity-checker/demo.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="embed-parity" />
-    <meta name="twitter:description" content="Same model. Different runtime. Prove the vectors still agree." />
-    <meta name="twitter:image" content="https://kraftaa.github.io/parity-checker/og.png" />
+    <meta name="twitter:description" content="Qwen3 passed normal requests and client batching, then fell to 0.1586 cosine under concurrent router batching." />
+    <meta name="twitter:image" content="https://kraftaa.github.io/parity-checker/demo.png" />
     <link rel="stylesheet" href="styles.css" />
     <script src="app.js" defer></script>
   </head>
@@ -28,17 +28,33 @@
       <nav aria-label="Primary navigation">
         <a href="#lab">Live explainer</a>
         <a href="#evidence">Evidence</a>
+        <a href="#workload">Workloads</a>
         <a href="https://github.com/kraftaa/parity-checker">GitHub</a>
       </nav>
     </header>
 
     <main id="top">
       <section class="hero shell">
-        <div class="eyebrow"><span></span>Embedding runtime verification</div>
-        <h1>Same model.<br /><em>Different runtime.</em></h1>
+        <div class="eyebrow"><span></span>Reproduced on Qwen3-Embedding-0.6B · TEI 1.9.3</div>
+        <h1>A healthy server.<br /><em>Different vectors.</em></h1>
         <p class="lede">
-          Your health check is green. The dimensions match. But does TEI return the same
-          embedding as SentenceTransformers—under real traffic, at real lengths, in real batches?
+          The model, revision, dimensions, and health endpoint all matched. Normal requests
+          passed. Client batches passed. Concurrent router batching collapsed cosine similarity
+          to <strong>0.1586</strong>.
+        </p>
+        <div class="proof-card" aria-label="Qwen3 TEI 1.9.3 measured parity results">
+          <div class="proof-title">
+            <div><span>MODEL</span><strong>Qwen3-Embedding-0.6B</strong></div>
+            <div><span>COMPARISON</span><strong>SentenceTransformers ↔ TEI 1.9.3</strong></div>
+          </div>
+          <div class="proof-row"><span>Normal request</span><code>1.0000</code><strong class="pass">PASS</strong></div>
+          <div class="proof-row"><span>Client list batch</span><code>1.0000</code><strong class="pass">PASS</strong></div>
+          <div class="proof-row failed"><span>Concurrent router batch</span><code>0.1586</code><strong>FAIL</strong></div>
+          <p>Same model · Same dimensions · Healthy endpoint</p>
+        </div>
+        <p class="definition">
+          <strong>embed-parity</strong> is a differential test for catching silent embedding
+          changes across runtimes, batching modes, prompts, pooling, and production workloads.
         </p>
         <div class="hero-actions">
           <div class="install-options" aria-label="Installation commands">
@@ -52,13 +68,6 @@
             </div>
           </div>
           <a class="text-link" href="https://github.com/kraftaa/parity-checker">View source <span>↗</span></a>
-        </div>
-        <div class="checks" aria-label="A real failure ordinary checks missed">
-          <div><span>Same model</span><strong class="pass">Pass</strong></div>
-          <div><span>Same revision</span><strong class="pass">Pass</strong></div>
-          <div><span>Correct dimension</span><strong class="pass">Pass</strong></div>
-          <div><span>Health endpoint</span><strong class="pass">Pass</strong></div>
-          <div class="failed"><span>Concurrent parity</span><strong>Fail</strong></div>
         </div>
       </section>
 
@@ -192,6 +201,33 @@ Concurrent server batching
   minimum cosine                   <mark>0.266183</mark>
   divergent responses              6
                                      <mark>FAIL</mark></code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="workload-section shell" id="workload">
+        <div class="section-copy compact">
+          <div class="eyebrow"><span></span>Migration evidence</div>
+          <h2>Compare the search results, not only the vectors.</h2>
+          <p>
+            Bring representative queries and documents. The workload report compares each
+            runtime independently and shows exactly which rankings changed—without claiming
+            retrieval quality when no relevance labels exist.
+          </p>
+        </div>
+        <div class="workload-grid">
+          <article>
+            <span>Matching configuration</span>
+            <strong>100%</strong>
+            <p>Top-1, top-5, and top-10 parity on the deterministic SciFact sample.</p>
+          </article>
+          <article class="changed">
+            <span>Unintended prompt</span>
+            <strong>86.4%</strong>
+            <p>Top-5 overlap, despite mean vector cosine remaining at 0.9959.</p>
+          </article>
+          <div class="workload-command">
+            <code>embed-parity workload --input workload.jsonl --save-baseline baseline.json --html report.html</code>
           </div>
         </div>
       </section>

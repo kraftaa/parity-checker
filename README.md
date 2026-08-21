@@ -1,26 +1,34 @@
 # embed-parity
 
-You deploy the same embedding model through Hugging Face Text Embeddings
-Inference (TEI). The model name, revision, dimensions, and health endpoint all
-look right. Are you actually serving the same embeddings?
+You're moving an embedding workload from SentenceTransformers to Hugging Face
+Text Embeddings Inference (TEI). Both return vectors of the expected dimension
+and both servers are healthy. Will your users get the same search results?
 
-`embed-parity` compares TEI with SentenceTransformers across vector direction
-and norms, pairwise geometry, nearest neighbors, controlled token lengths,
-client-list batches, and independent concurrent requests that TEI may coalesce
-into backend batches.
+Bring representative queries and documents and compare the actual retrieval
+behavior:
 
-```text
-Same model                  PASS
-Same revision               PASS
-Correct dimension           PASS
-Health endpoint             PASS
-Concurrent embedding parity FAIL
+```bash
+embed-parity workload \
+  --model BAAI/bge-small-en-v1.5 \
+  --tei http://localhost:8080 \
+  --input search-workload.jsonl \
+  --json parity-report.json \
+  --html parity-report.html
 ```
 
-That final condition is real: `embed-parity` reproduced open TEI issue #882 on
-official TEI 1.9.3. The same Qwen3 input changed from cosine `1.0000` in isolated
-and client-list requests to `0.1586` under concurrent router batching. The
-proposed PR #883 build restored `1.0000`.
+```text
+250 queries
+4,812 documents
+
+Top-1 agreement      98.8%
+Top-5 overlap        99.4%
+
+3 queries changed materially.
+```
+
+The report identifies the affected queries and shows the reference and candidate
+top results side by side. It calls this behavioral change—not a quality
+regression—because workload files do not contain relevance judgments.
 
 [Explore the interactive explanation](https://kraftaa.github.io/parity-checker/).
 
@@ -50,6 +58,38 @@ pip install -e '.[sentence-transformers,test]'
 
 ## Usage
 
+Workload JSONL requires a unique `id`, an explicit `query` or `document` type,
+and non-empty text. Unknown roles are rejected rather than guessed.
+
+```jsonl
+{"id":"q-001","type":"query","text":"postgres query blocked by lock"}
+{"id":"d-001","type":"document","text":"How to diagnose PostgreSQL blocking sessions..."}
+{"id":"d-002","type":"document","text":"Introduction to Redis caching..."}
+```
+
+For large inputs, deterministic role-stratified sampling is enabled by default
+at 10,000 documents and 1,000 queries. Set the limits and seed explicitly when
+recording a migration artifact:
+
+```bash
+embed-parity workload --model org/model --tei http://localhost:8080 \
+  --input workload.jsonl --max-documents 10000 --max-queries 1000 --seed 42 \
+  --save-baseline baseline.json --html baseline.html
+```
+
+Compare a later deployment against that exact sampled workload with
+`--baseline baseline.json`. JSON is the canonical machine-readable result; the
+HTML file is static, self-contained, and intended for migration reviews and CI
+artifacts.
+
+The reproducible BEIR SciFact experiment uses 50 real queries and 500 real
+documents. Matching SentenceTransformers and TEI produced 100% top-1, top-5,
+and top-10 parity. Adding an unintended TEI default prompt left dimensions and
+health intact but changed top-1 agreement to 92.0% and top-5 overlap to 86.4%.
+See [`experiments/current/workload-parity`](experiments/current/workload-parity).
+
+### Controlled runtime parity
+
 Start TEI with the same model used by the reference. For example, using the
 official TEI container (choose an image tag appropriate to your environment):
 
@@ -60,7 +100,7 @@ docker run --gpus all -p 8080:80 \
   --model-id BAAI/bge-small-en-v1.5
 ```
 
-Then compare the runtimes:
+Use the existing controlled probes to investigate lower-level runtime behavior:
 
 ```bash
 embed-parity compare \

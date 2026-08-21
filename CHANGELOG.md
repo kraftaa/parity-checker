@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented here.
 
+## 0.4.0 - 2026-08-21
+
+### Added
+
+- `embed-parity workload` for explicit query/document JSONL workloads.
+- Per-record cosine, norm, dimension, and non-finite-value analysis using
+  role-aware SentenceTransformers query/document encoding paths.
+- Independent reference/candidate retrieval rankings with top-1 agreement,
+  top-5/top-10 overlap, Jaccard, and rank-biased overlap.
+- Automatic representative failures and a `STRUCTURALLY VALID, RETRIEVAL CHANGED`
+  category for silent-risk cases.
+- Deterministic query/document sampling, saved baselines, previous-deployment
+  comparisons, and self-contained HTML artifacts.
+- A reproducible 50-query/500-document BEIR SciFact workload experiment with a
+  matching TEI control and a real server prompt-configuration mismatch.
+
+### Changed
+
+- The README now leads with the migration question and observed search-result
+  behavior before lower-level synthetic runtime checks.
+- Workload reports use schema version 4 and explicitly avoid search-quality claims
+  when no relevance judgments are supplied.
+
 ## 0.3.0 - 2026-08-19
 
 ### Added

@@ -155,6 +155,14 @@ class TEIBackend:
         except (TypeError, ValueError) as exc:
             raise RuntimeError("TEI returned malformed or ragged embeddings") from exc
 
+    def encode_query(self, texts: Sequence[str], batch_size: int) -> np.ndarray:
+        """TEI's /embed route uses the server's configured default prompt."""
+        return self.encode(texts, batch_size)
+
+    def encode_document(self, texts: Sequence[str], batch_size: int) -> np.ndarray:
+        """TEI does not expose a per-request query/document selector on /embed."""
+        return self.encode(texts, batch_size)
+
     def encode_concurrently(self, text: str, count: int) -> np.ndarray:
         """Send independent one-input requests at the same time.
 

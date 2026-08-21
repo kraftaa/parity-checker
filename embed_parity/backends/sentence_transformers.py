@@ -104,6 +104,9 @@ class SentenceTransformersBackend:
         }
 
     def encode(self, texts: Sequence[str], batch_size: int) -> np.ndarray:
+        return self._encode_with(self.model.encode, texts, batch_size)
+
+    def _encode_with(self, method: Any, texts: Sequence[str], batch_size: int) -> np.ndarray:
         kwargs: dict[str, Any] = {
             "batch_size": batch_size,
             "convert_to_numpy": True,
@@ -111,7 +114,31 @@ class SentenceTransformersBackend:
         }
         if self.normalize is not None:
             kwargs["normalize_embeddings"] = self.normalize
-        return np.asarray(self.model.encode(list(texts), **kwargs), dtype=np.float64)
+        return np.asarray(method(list(texts), **kwargs), dtype=np.float64)
+
+    def _legacy_role_encode(
+        self, texts: Sequence[str], batch_size: int, prompt_names: tuple[str, ...]
+    ) -> np.ndarray:
+        prompts = getattr(self.model, "prompts", {})
+        prompt_name = next((name for name in prompt_names if name in prompts), None)
+        if prompt_name is None:
+            return self.encode(texts, batch_size)
+        method = lambda values, **kwargs: self.model.encode(  # noqa: E731
+            values, prompt_name=prompt_name, **kwargs
+        )
+        return self._encode_with(method, texts, batch_size)
+
+    def encode_query(self, texts: Sequence[str], batch_size: int) -> np.ndarray:
+        method = getattr(self.model, "encode_query", None)
+        if callable(method):
+            return self._encode_with(method, texts, batch_size)
+        return self._legacy_role_encode(texts, batch_size, ("query",))
+
+    def encode_document(self, texts: Sequence[str], batch_size: int) -> np.ndarray:
+        method = getattr(self.model, "encode_document", None)
+        if callable(method):
+            return self._encode_with(method, texts, batch_size)
+        return self._legacy_role_encode(texts, batch_size, ("document", "passage", "corpus"))
 
     def text_at_token_length(self, target: int) -> str:
         """Create deterministic text with exactly target tokenizer tokens, if possible."""

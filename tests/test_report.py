@@ -19,7 +19,7 @@ def test_human_and_json_reports(tmp_path):
     write_json(report, path)
     parsed = json.loads(path.read_text())
     assert parsed["schema_version"] == 3
-    assert parsed["tool_version"] == "0.3.0"
+    assert parsed["tool_version"] == "0.4.0"
     assert parsed["passed"] is True
 
 

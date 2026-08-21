@@ -17,6 +17,14 @@ class EmbeddingBackend(Protocol):
     def encode(self, texts: Sequence[str], batch_size: int) -> np.ndarray: ...
 
 
+class RetrievalEmbeddingBackend(Protocol):
+    """Optional role-aware paths used by asymmetric retrieval models."""
+
+    def encode_query(self, texts: Sequence[str], batch_size: int) -> np.ndarray: ...
+
+    def encode_document(self, texts: Sequence[str], batch_size: int) -> np.ndarray: ...
+
+
 class ConcurrentEmbeddingBackend(Protocol):
     """Optional capability for production-style independent request checks."""
 

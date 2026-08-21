@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
+from pathlib import Path
 
 from . import __version__
 from .backends.sentence_transformers import SentenceTransformersBackend
@@ -10,6 +12,8 @@ from .backends.tei import TEIBackend
 from .compare import Thresholds, compare_backends
 from .probes import DEFAULT_LENGTHS, built_in_probes, load_jsonl_probes
 from .report import render_text, write_error_json, write_json
+from .workload import add_baseline_comparison, compare_workload, load_workload_jsonl
+from .workload_report import render_workload_text, write_workload_html
 
 
 def _batch_sizes(value: str) -> tuple[int, ...]:
@@ -123,6 +127,56 @@ def build_parser() -> argparse.ArgumentParser:
         "--norm-relative-difference", type=float, default=Thresholds.norm_relative_difference
     )
     compare.add_argument("--prefix-improvement", type=float, default=Thresholds.prefix_improvement)
+
+    workload = subparsers.add_parser(
+        "workload", help="measure vector and retrieval parity on a query/document workload"
+    )
+    workload.add_argument("--model", required=True, help="Hugging Face model identifier")
+    workload.add_argument("--tei", required=True, help="TEI base URL")
+    workload.add_argument("--input", required=True, metavar="JSONL", help="workload JSONL path")
+    workload.add_argument("--revision", help="SentenceTransformers model revision")
+    workload.add_argument("--device", help="SentenceTransformers device (cpu, cuda, mps)")
+    workload.add_argument("--dtype", choices=("float16", "float32", "float64", "bfloat16"))
+    workload_norm = workload.add_mutually_exclusive_group()
+    workload_norm.add_argument(
+        "--normalize", action="store_true", help="normalize reference embeddings"
+    )
+    workload_norm.add_argument(
+        "--no-normalize", action="store_true", help="disable reference normalization"
+    )
+    workload.add_argument("--batch-size", type=int, default=32)
+    workload.add_argument("--max-documents", type=int, default=10_000)
+    workload.add_argument("--max-queries", type=int, default=1_000)
+    workload.add_argument("--seed", type=int, default=42)
+    workload.add_argument("--timeout", type=float, default=120.0)
+    workload.add_argument("--readiness-timeout", type=float, default=30.0)
+    workload.add_argument("--tei-retries", type=int, default=2)
+    workload.add_argument("--tei-retry-backoff", type=float, default=0.25)
+    workload.add_argument(
+        "--tei-api-key",
+        default=os.getenv("EMBED_PARITY_TEI_API_KEY"),
+        help="TEI bearer token (or set EMBED_PARITY_TEI_API_KEY)",
+    )
+    workload.add_argument(
+        "--tei-header", type=_header, action="append", default=[], metavar="NAME=VALUE"
+    )
+    workload_truncation = workload.add_mutually_exclusive_group()
+    workload_truncation.add_argument(
+        "--tei-truncate", dest="tei_truncate", action="store_true", default=True
+    )
+    workload_truncation.add_argument("--no-tei-truncate", dest="tei_truncate", action="store_false")
+    workload.add_argument("--json", metavar="PATH", help="write the canonical JSON report")
+    workload.add_argument("--html", metavar="PATH", help="write a self-contained HTML report")
+    workload.add_argument("--save-baseline", metavar="PATH", help="save this workload result")
+    workload.add_argument("--baseline", metavar="PATH", help="compare with a saved workload result")
+    workload.add_argument("--vector-mean", type=float, default=Thresholds.vector_mean)
+    workload.add_argument("--vector-min", type=float, default=Thresholds.vector_min)
+    workload.add_argument("--top1-agreement", type=float, default=Thresholds.top1_agreement)
+    workload.add_argument("--top5-overlap", type=float, default=Thresholds.top5_overlap)
+    workload.add_argument("--top10-overlap", type=float, default=Thresholds.top10_overlap)
+    workload.add_argument(
+        "--norm-relative-difference", type=float, default=Thresholds.norm_relative_difference
+    )
     return parser
 
 
@@ -187,6 +241,69 @@ def run_compare(args: argparse.Namespace) -> int:
         candidate.close()
 
 
+def run_workload(args: argparse.Namespace) -> int:
+    normalize = True if args.normalize else False if args.no_normalize else None
+    if args.timeout <= 0 or args.readiness_timeout <= 0:
+        raise ValueError("timeouts must be positive")
+    if args.tei_retries < 0 or args.tei_retry_backoff < 0:
+        raise ValueError("TEI retries and retry backoff cannot be negative")
+    if args.batch_size < 1:
+        raise ValueError("batch size must be positive")
+    thresholds = Thresholds(
+        vector_mean=args.vector_mean,
+        vector_min=args.vector_min,
+        top1_agreement=args.top1_agreement,
+        top5_overlap=args.top5_overlap,
+        top10_overlap=args.top10_overlap,
+        norm_relative_difference=args.norm_relative_difference,
+    )
+    records = load_workload_jsonl(args.input)
+    candidate = TEIBackend(
+        args.tei,
+        timeout=args.timeout,
+        api_key=args.tei_api_key,
+        headers=dict(args.tei_header),
+        truncate=args.tei_truncate,
+        retries=args.tei_retries,
+        retry_backoff=args.tei_retry_backoff,
+    )
+    try:
+        candidate.wait_until_ready(args.readiness_timeout)
+        reference = SentenceTransformersBackend(
+            args.model,
+            revision=args.revision,
+            device=args.device,
+            dtype=args.dtype,
+            normalize=normalize,
+        )
+        report = compare_workload(
+            args.model,
+            reference,
+            candidate,
+            records,
+            batch_size=args.batch_size,
+            max_documents=args.max_documents,
+            max_queries=args.max_queries,
+            seed=args.seed,
+            thresholds=thresholds,
+        )
+        if args.baseline:
+            baseline = json.loads(Path(args.baseline).read_text(encoding="utf-8"))
+            if not isinstance(baseline, dict):
+                raise ValueError("baseline must contain a JSON object")
+            add_baseline_comparison(report, baseline)
+        print(render_workload_text(report), end="")
+        if args.json:
+            write_json(report, args.json)
+        if args.save_baseline:
+            write_json(report, args.save_baseline)
+        if args.html:
+            write_workload_html(report, args.html)
+        return 0 if report["passed"] else 1
+    finally:
+        candidate.close()
+
+
 def _write_execution_error(args: argparse.Namespace, error: BaseException) -> None:
     path = getattr(args, "json", None)
     if not path:
@@ -206,7 +323,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
-        return run_compare(args)
+        return run_workload(args) if args.command == "workload" else run_compare(args)
     except KeyboardInterrupt:
         _write_execution_error(args, KeyboardInterrupt())
         print("embed-parity: interrupted", file=sys.stderr)

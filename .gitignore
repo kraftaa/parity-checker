@@ -6,3 +6,6 @@ htmlcov/
 .venv/
 *.egg-info/
 report.json
+experiments/current/workload-parity/scifact-workload.jsonl
+experiments/current/workload-parity/*.html
+experiments/current/workload-parity/data/

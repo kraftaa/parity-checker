@@ -6,6 +6,7 @@ import pytest
 
 import embed_parity.cli as cli
 from embed_parity.cli import build_parser
+from tests.fakes import FakeBackend
 
 
 def test_parser_accepts_custom_probe_and_length_options():
@@ -87,6 +88,36 @@ def test_parser_accepts_tei_transport_options():
     assert args.tei_truncate is False
 
 
+def test_parser_accepts_workload_options():
+    args = build_parser().parse_args(
+        [
+            "workload",
+            "--model",
+            "org/model",
+            "--tei",
+            "http://localhost:8080",
+            "--input",
+            "workload.jsonl",
+            "--max-documents",
+            "500",
+            "--max-queries",
+            "50",
+            "--seed",
+            "7",
+            "--baseline",
+            "old.json",
+            "--html",
+            "report.html",
+        ]
+    )
+    assert args.command == "workload"
+    assert args.max_documents == 500
+    assert args.max_queries == 50
+    assert args.seed == 7
+    assert args.baseline == "old.json"
+    assert args.html == "report.html"
+
+
 def test_execution_failure_writes_json(monkeypatch, tmp_path):
     def fail(_args):
         raise RuntimeError("server unavailable")
@@ -128,3 +159,45 @@ def test_unwritable_error_report_still_returns_exit_two(monkeypatch, tmp_path, c
     )
     assert exit_code == 2
     assert "could not write error report" in capsys.readouterr().err
+
+
+def test_workload_command_writes_json_html_and_baseline(monkeypatch, tmp_path):
+    class Runtime(FakeBackend):
+        def wait_until_ready(self, timeout):
+            return None
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(cli, "TEIBackend", lambda *args, **kwargs: Runtime())
+    monkeypatch.setattr(cli, "SentenceTransformersBackend", lambda *args, **kwargs: Runtime())
+    workload = tmp_path / "workload.jsonl"
+    rows = [{"id": "q", "type": "query", "text": "query"}]
+    rows.extend(
+        {"id": f"d-{index}", "type": "document", "text": f"document {index}"} for index in range(6)
+    )
+    workload.write_text("\n".join(json.dumps(row) for row in rows) + "\n")
+    output = tmp_path / "report.json"
+    baseline = tmp_path / "baseline.json"
+    artifact = tmp_path / "report.html"
+    exit_code = cli.main(
+        [
+            "workload",
+            "--model",
+            "org/model",
+            "--tei",
+            "http://localhost:8080",
+            "--input",
+            str(workload),
+            "--json",
+            str(output),
+            "--save-baseline",
+            str(baseline),
+            "--html",
+            str(artifact),
+        ]
+    )
+    assert exit_code == 0
+    assert json.loads(output.read_text())["report_type"] == "workload_parity"
+    assert json.loads(baseline.read_text())["passed"] is True
+    assert "<!doctype html>" in artifact.read_text()
